@@ -26,7 +26,7 @@ function adminProno(){
  if(p&&p.st==="ouvert"){
   var tot=mine.reduce(function(s,x){return s+x.mise},0);
   h+='<div class="ligne"><span>'+esc(p.a)+' – '+esc(p.b)+'</span><b class="j">'+esc(p.score.replace("-"," : "))+'</b></div>'+
-   '<div class="ligne"><span>Cote de gain</span><b>'+p.cote.toFixed(2)+'</b></div><div class="ligne"><span>Participants</span><b>'+mine.length+' ('+tot+' F)</b></div>'+
+   '<div class="ligne"><span>Cote de gain</span><b>'+fc(p.cote)+'</b></div><div class="ligne"><span>Participants</span><b>'+mine.length+' ('+tot+' F)</b></div>'+
    '<small style="display:block;margin:10px 0 4px">Score final du match</small><div style="display:flex;gap:8px"><input class="in" id="fa" type="number" min="0" placeholder="Équipe 1"><input class="in" id="fb" type="number" min="0" placeholder="Équipe 2"></div><button class="ok" id="fin">Terminer le match</button>'}
  else{
   if(p&&p.st==="clos"){
@@ -35,7 +35,7 @@ function adminProno(){
     '<div class="ligne"><span>Gagnants</span><b class="v">'+g+'</b></div><div class="ligne"><span>Perdants</span><b class="r">'+pe.length+'</b></div>'+(re?'<div class="ligne"><span>Remboursés</span><b class="b">'+re+'</b></div>':'');
    if(pe.length)h+='<button class="ok" id="rem" style="margin:10px 0">Rembourser tout ('+pe.reduce(function(s,x){return s+x.mise},0)+' F)</button>'}
   h+='<small style="display:block;margin:10px 0 6px">Nouveau pronostic : choisis un match, le score et la cote.</small><select class="in" id="pm">'+EV.filter(function(x){return x.st!=="annule"}).map(function(x){return '<option value="'+x.id+'">'+esc(x.a)+' – '+esc(x.b)+'</option>'}).join("")+'</select>'+
-   '<div style="display:flex;gap:8px"><input class="in" id="pa" type="number" min="0" placeholder="Buts équipe 1"><input class="in" id="pb" type="number" min="0" placeholder="Buts équipe 2"></div><input class="in" id="pc" type="number" step="0.01" min="1.01" value="1.50" placeholder="Cote de gain"><button class="ok" id="pub">Publier en haut de l’accueil</button>'}
+   '<div style="display:flex;gap:8px"><input class="in" id="pa" type="number" min="0" placeholder="Buts équipe 1"><input class="in" id="pb" type="number" min="0" placeholder="Buts équipe 2"></div><input class="in" id="pc" type="number" step="0.01" min="1.01" value="1.50" placeholder="Cote de gain (en %)"><button class="ok" id="pub">Publier en haut de l’accueil</button>'}
  return h+'</div>'}
 function gererProno(ev){
  var b=ev.target.closest("button"),id=b?b.id:"";
@@ -60,9 +60,9 @@ function carteEvent(m){
   '<div class="ligne"><span>Coup d’envoi</span><b>'+fdate(m.start)+'</b></div>'+
   '<div class="ligne"><span>Code</span><span><b class="j">'+esc(m.code)+'</b> <button class="go" data-ex="cp" data-e="'+m.id+'">Copier</button></span></div>'+
   '<div class="ligne"><span>Visibilité</span><b>'+(m.pub?"Accueil":"Code seulement")+'</b></div>'+
-  '<div class="ligne"><span>Cotes 1X2</span><b class="j">'+q["1"].toFixed(2)+' · '+q.X.toFixed(2)+' · '+q["2"].toFixed(2)+'</b></div>'+
-  (q.bo?'<div class="ligne"><span>Les deux marquent</span><b class="j">'+q.bo.toFixed(2)+' · '+q.bn.toFixed(2)+'</b></div>':'')+
-  (q.po?'<div class="ligne"><span>Total 2.5</span><b class="j">'+q.po.toFixed(2)+' · '+q.pu.toFixed(2)+'</b></div>':'')+
+  '<div class="ligne"><span>Cotes 1X2</span><b class="j">'+fc(q["1"])+' · '+fc(q.X)+' · '+fc(q["2"])+'</b></div>'+
+  (q.bo?'<div class="ligne"><span>Les deux marquent</span><b class="j">'+fc(q.bo)+' · '+fc(q.bn)+'</b></div>':'')+
+  (q.po?'<div class="ligne"><span>Total 2.5</span><b class="j">'+fc(q.po)+' · '+fc(q.pu)+'</b></div>':'')+
   '<div class="ligne"><span>Sélections jouées</span><b>'+n+'</b></div>';
  if(!fin&&cfm&&cfm.id===m.id){
   h+='<p class="leg" style="margin:10px 0 6px">'+(cfm.t==="res"?'Confirmer le score final <b>'+cfm.a+' : '+cfm.b+'</b> ? Les tickets seront réglés et les gains crédités.':cfm.t==="ann"?'Annuler cet évènement ? Les sélections sont remboursées (cote 1.00).':'Supprimer cet évènement ?')+'</p>'+
