@@ -21,8 +21,9 @@ function ligne(m,e){return '<div class="ligne"><span>'+esc(m.a)+' – '+esc(m.b)
 function resultats(q){q=q.toLowerCase();var l=mesTickets().filter(function(t){return (t.id+" "+t.sel.map(function(s){return s.a+" "+s.b}).join(" ")).toLowerCase().indexOf(q)>-1});
  return l.length?l.map(function(t){return carteTicket(t)}).join(""):'<p class="vide" style="padding:8px 0">Aucun ticket trouvé.</p>'}
 function rendre(){
- var ids=Object.keys(coupon),h='<div class="sec"><h2>Mon <span class="j">ticket</span></h2></div>';
- if(!ids.length)h+='<div class="vide" style="padding:8px 0 18px"><b style="color:var(--txt)">Ton ticket est vide</b><br>Ajoute un match ou choisis une option ci-dessous.</div>';
+ var ids=Object.keys(coupon).filter(function(i){return find(i)}),h='<div class="sec"><h2>Mon <span class="j">ticket</span></h2></div>';
+ if(!ids.length&&Object.keys(coupon).length&&!_snap)h+='<p class="vide" style="padding:8px 0 18px">Chargement du ticket…</p>';
+ else if(!ids.length)h+='<div class="vide" style="padding:8px 0 18px"><b style="color:var(--txt)">Ton ticket est vide</b><br>Ajoute un match ou choisis une option ci-dessous.</div>';
  else{var t=1;h+=ids.map(function(id){var m=find(id),e=coupon[id];t*=1+e.q/100;return ligne(m,e)}).join("")+
   '<div class="ligne"><span>Cote totale</span><b class="j">'+fc((t-1)*100)+'</b></div><div class="mise"><input id="mi" type="number" inputmode="numeric" placeholder="Mise en F" min="1"></div><div id="gp" class="ligne" style="border:0"><span>Gain possible</span><b class="j">–</b></div><div style="display:flex;gap:8px;margin-bottom:16px"><button class="ok" id="ok">Valider le pari</button><button class="tout" id="vd">Vider</button></div>'+(codePart?'<div class="fiche" style="margin:-6px 0 16px"><small>Code de ton ticket (valable jusqu’au coup d’envoi)</small><div class="j" style="font-size:26px;font-weight:800;letter-spacing:2px;margin:4px 0 8px">'+codePart+'</div><div style="display:flex;gap:8px"><button class="ok" id="sh">Partager</button><button class="tout" id="cp">Copier</button></div></div>':'<button class="tout" id="pt" style="margin:-6px 0 16px;width:100%">Partager mon ticket</button>')}
  h+=opt("alim","+","var(--vert)","Alimenter mon solde","Solde : "+solde+" F");
@@ -39,7 +40,7 @@ function majGain(){var e=$("gp"),i=$("mi");if(!e||!i)return;var t=1;Object.keys(
 $("vue").addEventListener("click",function(ev){
  var o=ev.target.closest("[data-o]"),b=ev.target.closest("button"),id=b?b.id:"";
  if(o){var k=o.dataset.o;if(k==="alim"){location.href="recharge.html";return}sous=sous===k?"":k;rendre();return}
- if(id==="ok"){var mise=Math.floor(+($("mi").value||0));if(!(mise>0)){toast("Entre ta mise en F.");return}
+ if(id==="ok"){if(!EV.length){toast("Chargement en cours, réessaie dans un instant.");return}var mise=Math.floor(+($("mi").value||0));if(!(mise>0)){toast("Entre ta mise en F.");return}
   var perdus=Object.keys(coupon).filter(function(i){return !ouvert(find(i))});
   if(perdus.length){perdus.forEach(function(i){delete coupon[i]});ecrire("coupon",coupon);badge();toast("Un match a commencé : il a été retiré de ton ticket.");rendre();return}
   if(mise>solde){toast("Solde insuffisant. Fais une demande de recharge.");return}
