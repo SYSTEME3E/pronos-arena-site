@@ -83,19 +83,8 @@ a.nv{text-decoration:none}
 .bars{display:flex;gap:8px;margin-top:6px}.half{flex:1;height:8px;background:var(--bg3);border-radius:99px;display:flex;overflow:hidden}
 .half i{display:block;height:100%;border-radius:99px}.fl{background:var(--vert)}.fr{background:var(--bleu)}
 
-:root[data-theme="light"]{--bg:#eef2fa;--bg2:#ffffff;--bg3:#e3e9f6;--line:#d3dbee;--txt:#0e1a45;--mute:#5a678f;--jaune:#ffc800;--jaune-t:#9a6a00;--rouge:#e0263a;--bleu:#2f6fe0;--vert:#1a9d57}
 .match{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
 .meta{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--mute);font-size:13px;margin-bottom:6px}
-
-/* Mode clair : le jaune vif reste pour les fonds (boutons, cote choisie) ; le texte et les icônes jaunes passent à un doré foncé bien lisible sur fond blanc. */
-:root[data-theme="light"] .j,
-:root[data-theme="light"] .cote:not([aria-pressed="true"]) b,
-:root[data-theme="light"] .fav.on{color:var(--jaune-t);text-shadow:none}
-:root[data-theme="light"] .tab[aria-selected="true"]{color:var(--txt);text-shadow:none;border-bottom-color:var(--jaune-t)}
-:root[data-theme="light"] .nv[aria-current="true"]{color:var(--txt);text-shadow:none}
-:root[data-theme="light"] .nv[aria-current="true"] svg{color:var(--jaune-t);filter:none}
-:root[data-theme="light"] .cote[aria-pressed="true"] b,:root[data-theme="light"] .cote[aria-pressed="true"] span{text-shadow:none}
-:root[data-theme="light"] .ok{box-shadow:0 1px 0 rgba(70,48,0,.25)}
 
 /* Administrateur : le bouton des trois barres est fixé en haut à gauche de la page. */
 nav.bas div.adm{grid-template-columns:repeat(5,1fr)}
