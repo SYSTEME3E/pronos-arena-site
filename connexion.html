@@ -15,8 +15,8 @@
 <script src="app.js"></script>
 <script>
 var nn=document.querySelector("nav.bas");if(nn)nn.style.display="none";
-var mode="in";
-function nouveauCode(u){var k;do{k=u.slice(0,4).toUpperCase()+Math.floor(100+Math.random()*900)}while(comptes.some(function(x){return x.code===k}));return k}
+if(AUTH)location.href="index.html";
+var mode="in",busy=false,fl=lire("flash",null);if(fl){ecrire("flash",null);setTimeout(function(){toast(fl)},300)}
 function rendre(){
  $("vue").innerHTML='<h1 style="font-size:30px;margin:22px 0 4px">Pronos <span class="j">Arena</span></h1>'+
  '<div class="tabs" style="position:static;margin-bottom:14px"><button class="tab" data-md="in" aria-selected="'+(mode==="in")+'">Connexion</button><button class="tab" data-md="up" aria-selected="'+(mode==="up")+'">Créer un compte</button></div>'+
@@ -25,21 +25,16 @@ function rendre(){
   '<input class="in" id="f1" placeholder="Nom d’utilisateur"><input class="in" id="f3" type="email" placeholder="E-mail (facultatif)"><input class="in" id="f4" type="tel" placeholder="Numéro de téléphone"><input class="in" id="f2" type="password" placeholder="Mot de passe (8 caractères minimum)" autocomplete="new-password"><input class="in" id="f5" placeholder="Code de parrainage (facultatif)" autocapitalize="characters"><button class="ok" id="go">Créer mon compte</button>')}
 $("vue").onclick=function(ev){
  var m=ev.target.closest("[data-md]");if(m){mode=m.dataset.md;rendre();return}
- if(!ev.target.closest("#go"))return;
- var u=$("f1").value.trim(),pw=$("f2").value,c;
+ if(!ev.target.closest("#go")||busy)return;
+ var u=$("f1").value.trim(),pw=$("f2").value,p;
  if(mode==="in"){
   if(!u||!pw){toast("Remplis les deux champs.");return}
-  c=comptes.filter(function(x){return x.pseudo.toLowerCase()===u.toLowerCase()||(x.email||"").toLowerCase()===u.toLowerCase()})[0];
-  if(!c){toast("Compte introuvable. Crée un compte.");return}
-  if(c.bloque){toast("Ce compte est bloqué. Contacte l’administrateur.");return}
+  p=seConnecter(u,pw)
  }else{
   if(u.length<3||pw.length<8){toast("Nom d’utilisateur (3 caractères) et mot de passe (8 caractères) obligatoires.");return}
-  if(comptes.some(function(x){return x.pseudo.toLowerCase()===u.toLowerCase()})){toast("Ce nom d’utilisateur est déjà pris.");return}
-  var pc=$("f5").value.trim().toUpperCase();
-  if(pc&&!comptes.some(function(x){return x.code===pc})){toast("Code de parrainage introuvable.");return}
-  c={id:String(Math.floor(1e9+Math.random()*9e9)),pseudo:u,email:$("f3").value.trim(),tel:$("f4").value.trim(),date:new Date().toLocaleDateString("fr-FR"),prenom:"",nom:"",pays:"",ville:"",code:nouveauCode(u),parrain:pc};
-  comptes.push(c);ecrire("comptes",comptes)}
- sess=c;ecrire("sess",c);location.href="index.html"};
+  p=creerCompte({pseudo:u,pw:pw,email:$("f3").value.trim(),tel:$("f4").value.trim(),parrain:$("f5").value.trim().toUpperCase()})}
+ busy=true;
+ p.then(function(){location.href="index.html"},function(e){busy=false;toast((e&&e.message)||"Erreur.")})};
 rendre();
 </script>
 </body>
