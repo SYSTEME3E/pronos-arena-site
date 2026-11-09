@@ -49,7 +49,8 @@ function combine(){
   var q=m.q,k=["1","X","2"].sort(function(x,y){return q[x]-q[y]})[0];
   return {m:m,k:k,lb:{"1":"V1",X:"X","2":"V2"}[k],q:q[k]}})}
 // Les entrées du ticket qui ne sont plus valables (évènement supprimé ou commencé) sont retirées.
-Object.keys(coupon).forEach(function(i){if(!ouvert(find(i))||coupon[i].k===undefined)delete coupon[i]});ecrire("coupon",coupon);
+// (le tri des matchs fermés se fait dans chargerCoeur, une fois les matchs chargés : trier ici viderait tout le ticket, car EV est encore vide)
+Object.keys(coupon).forEach(function(i){if(!coupon[i]||coupon[i].k===undefined)delete coupon[i]});
 function mesTickets(){return hist.filter(function(t){return sess&&t.uid===sess.id})}
 // Logo : affiche l’image si l’API fournit une adresse (m.la / m.lb), sinon les initiales.
 function lg(n,c,u){return '<span class="lg" style="background:'+(c||couleur(n))+'">'+ini(n)+(u?'<img class="lgi" src="'+u+'" alt="" onerror="this.remove()">':'')+'</span>'}
