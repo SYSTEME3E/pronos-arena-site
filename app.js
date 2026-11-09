@@ -1,13 +1,8 @@
-// Comptes administrateurs (version locale rapide)
-var ADMINS=["admin","eric1"];
-function pseudoAdmin(p){return ADMINS.indexOf(String(p||"").toLowerCase())>-1}
 function lire(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function ecrire(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 var coupon=lire("coupon",{}),favs=lire("favs",{}),hist=lire("hist",[]),sess=lire("sess",null),comptes=lire("comptes",[]),demandes=lire("demandes",[]),bons=lire("bons",[]),pronostic=lire("pronostic",null),parts=lire("parts",[]),EV=lire("events",[]),evcodes=lire("evcodes",[]),CONFIG=lire("config",{p1:10,p2:5,p3:2,pr:5,lien:"",minDep:0,minRet:0,hd:10,hf:18}),solde=0;
 if(CONFIG.pr===undefined)CONFIG.pr=5;if(CONFIG.lien===undefined)CONFIG.lien="";if(CONFIG.minDep===undefined)CONFIG.minDep=0;if(CONFIG.minRet===undefined)CONFIG.minRet=0;if(CONFIG.hd===undefined)CONFIG.hd=10;if(CONFIG.hf===undefined)CONFIG.hf=18;
-if(sess){var cc=comptes.filter(function(c){return c.id===sess.id})[0];if(!cc||cc.bloque){sess=null;ecrire("sess",null)}}
-solde=(lire("sess",null)||{}).solde||0;
-if(!sess&&location.pathname.indexOf("connexion")<0)location.href="connexion.html";
+solde=(sess||{}).solde||0;
 
 var $=function(i){return document.getElementById(i)};
 function pad(n){return String(n).padStart(2,"0")}
@@ -41,20 +36,6 @@ function combine(){
 // Les entrées du ticket qui ne sont plus valables (évènement supprimé ou commencé) sont retirées.
 Object.keys(coupon).forEach(function(i){if(!ouvert(find(i))||coupon[i].k===undefined)delete coupon[i]});ecrire("coupon",coupon);
 function mesTickets(){return hist.filter(function(t){return sess&&t.uid===sess.id})}
-// Règle les tickets quand l’admin saisit un résultat (m.res) ou annule l’évènement.
-function verdict(t){
- if(t.sel.some(function(s){return s.r===false})){t.st="perdu";t.tsr=Date.now();return}
- if(t.sel.some(function(s){return s.r==null}))return;
- var g=t.sel.filter(function(s){return s.r===true});t.tsr=Date.now();
- if(!g.length){t.st="rembourse";crediter(t.uid,t.mise);return}
- t.cote=g.reduce(function(p,s){return p*s.q},1);t.st="gagne";crediter(t.uid,Math.round(t.mise*t.cote))}
-function reglerEvent(m){
- var ab=m.res?m.res.split("-").map(Number):null;
- hist.forEach(function(t){
-  if(t.st!=="cours")return;var ch=false;
-  t.sel.forEach(function(s){if(s.eid===m.id&&s.r==null){s.r=m.st==="annule"?"annule":evalk(s.k,ab[0],ab[1]);ch=true}});
-  if(ch)verdict(t)});
- ecrire("hist",hist)}
 // Logo : affiche l’image si l’API fournit une adresse (m.la / m.lb), sinon les initiales.
 function lg(n,c,u){return '<span class="lg" style="background:'+(c||couleur(n))+'">'+ini(n)+(u?'<img class="lgi" src="'+u+'" alt="" onerror="this.remove()">':'')+'</span>'}
 
@@ -86,7 +67,7 @@ function nav(p){
  ["favoris","Favoris",'<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'],["ticket","Ticket",""],
  ["historique","Historique",'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" style="stroke:var(--bg2)" stroke-width="2" fill="none"/>'],
  ["menu","Menu",'<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>']];
- var adm=sess&&pseudoAdmin(sess.pseudo);
+ window.NAVP=p;var adm=!!(sess&&sess.is_admin);
  $("nb").className=adm?"adm":"";
  $("nb").innerHTML=(adm?'<button class="nv bg" id="bg" aria-label="Menu administration"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>':'')+N.map(function(n){var h=n[0]+".html",cur=n[0]===p?' aria-current="true"':'';
   if(n[0]==="ticket")return '<a class="nv cp" href="'+h+'" aria-label="Ticket"'+cur+'><span class="rond"><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/></svg><em id="cpn" style="display:none">0</em></span>Ticket</a>';
@@ -94,6 +75,7 @@ function nav(p){
  badge();if(adm)tiroir()}
 // Menu 3 barres de l’administrateur : les pages d’administration s’ouvrent depuis ce tiroir.
 function tiroir(){
+ var ex=$("tir");if(ex)ex.remove();
  var na=demandes.filter(function(x){return x.st==="attente"}).length;
  var L=[["accueil","Tableau de bord"],["demandes","Dépôts et retraits"+(na?" ("+na+")":"")],["comptes","Comptes"],["events","Évènements et résultats"],["prono","Pronostic du jour"],["regl","Réglages"]];
  var d=document.createElement("div");d.id="tir";d.innerHTML='<div class="vo" id="tvo"></div><aside class="pan"><div class="th"><b>Administration</b><button class="ic" id="tfe" aria-label="Fermer">✕</button></div>'+
@@ -111,58 +93,24 @@ document.addEventListener("click",function(ev){
   if(cur&&cur.k===ent.k)delete coupon[id];else coupon[id]=ent;ecrire("coupon",coupon);badge();if(window.rendre)rendre()}
  if(f){var k=+f.dataset.f;favs[k]=!favs[k];ecrire("favs",favs);if(window.rendre)rendre()}});
 
-function gains(){var d=Date.now()-6048e5;return mesTickets().filter(function(t){return t.st==="gagne"&&(t.tsr||0)>=d}).reduce(function(s,t){return s+Math.round(t.mise*t.cote)},0)}
+function gains(){var d=Date.now()-6048e5;return mesTickets().filter(function(t){return t.st==="gagne"&&(t.tsr||0)>=d}).reduce(function(s,t){return s+gainT(t)},0)}
 function carteTicket(t){
  var etat=t.st==="cours"?'<span class="live">● En cours</span>':t.st==="gagne"?'<b class="j">Gagné</b>':t.st==="rembourse"?'<b class="b">Remboursé</b>':t.st==="annule"?'<b class="b">Annulé</b>':'<b class="r">Perdu</b>';
  var sr=function(s){return s.r===true?' <b class="j">✓</b>':s.r===false?' <b class="r">✗</b>':s.r==="annule"?' <small>(annulé)</small>':''};
  return '<article class="match"><div class="meta"><span>Ticket '+t.id+' – '+t.date+'</span>'+etat+'</div>'+
  t.sel.map(function(s){return '<div class="ligne"><span>'+esc(s.a)+' – '+esc(s.b)+' ('+esc(s.lb)+')'+(t.pp?'':sr(s))+'</span><b class="j">'+s.q.toFixed(2)+'</b></div>'}).join("")+
  '<div class="ligne"><span>Mise</span><b>'+t.mise+' F</b></div>'+
- (t.st==="perdu"||t.st==="rembourse"||t.st==="annule"?'':'<div class="ligne"><span>'+(t.st==="gagne"?"Gain":"Gain possible")+'</span><b class="j">'+Math.round(t.mise*t.cote)+' F</b></div>')+(peutAnnuler(t)?'<button class="tout" style="margin-top:10px" data-an="'+t.id+'">Annuler ma mise</button>':'')+'</article>'}
+ (t.st==="perdu"||t.st==="rembourse"||t.st==="annule"?'':'<div class="ligne"><span>'+(t.st==="gagne"?"Gain":"Gain possible")+'</span><b class="j">'+gainT(t)+' F</b></div>')+(peutAnnuler(t)?'<button class="tout" style="margin-top:10px" data-an="'+t.id+'">Annuler ma mise</button>':'')+'</article>'}
 // Une mise peut être annulée tant qu’aucun des matchs du ticket n’a commencé.
 function peutAnnuler(t){
  if(t.st!=="cours")return false;
  if(t.pp)return !!pronostic&&pronostic.id===t.pid&&ouvert(find(pronostic.mid));
  return t.sel.every(function(x){return ouvert(find(x.eid))})}
-function annulerMise(id){
- var t=hist.filter(function(x){return x.id===id})[0],p=false;
- if(!t){t=parts.filter(function(x){return x.id===id})[0];p=true}
- if(!t||t.st!=="cours")return false;
- if(p?!(pronostic&&pronostic.id===t.pid&&ouvert(find(pronostic.mid))):!peutAnnuler(t))return false;
- t.st="annule";crediter(t.uid||sess.id,t.mise);ecrire(p?"parts":"hist",p?parts:hist);return true}
 
-function sauver(){ecrire("sess",sess);comptes=comptes.map(function(c){return c.id===sess.id?sess:c});ecrire("comptes",comptes)}
+function sauver(){}
 var RETOUR='<a href="menu.html" data-p="menu" class="tout" style="text-decoration:none;color:inherit;display:inline-block;margin-top:12px">← Menu</a>';
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-function crediter(uid,m){comptes.forEach(function(c){if(c.id===uid)c.solde=(c.solde||0)+m});ecrire("comptes",comptes);
- if(sess&&sess.id===uid){var c=comptes.filter(function(x){return x.id===uid})[0];sess.solde=c?c.solde:(sess.solde||0)+m;ecrire("sess",sess);solde=sess.solde}}
-// Parrainage réel : le parrain d’un compte est celui dont le code est dans c.parrain.
-function parrains(c){
- var r=[],cur=c;
- for(var n=0;n<3;n++){
-  var code=(cur&&cur.parrain)||"";if(!code)break;
-  var p=comptes.filter(function(x){return x.code===code})[0];
-  if(!p||p.id===c.id||r.indexOf(p)>=0)break;
-  r.push(p);cur=p}
- return r}
-function arbre(){
- var niv=[[],[],[]],codes=sess&&sess.code?[sess.code]:[],vus={};
- if(sess)vus[sess.id]=1;
- for(var n=0;n<3;n++){var suiv=[];
-  comptes.forEach(function(c){if(!vus[c.id]&&c.parrain&&codes.indexOf(c.parrain)>=0){vus[c.id]=1;niv[n].push(c);suiv.push(c.code)}});
-  codes=suiv}
- return niv}
-// Recharge validée : chaque parrain (niveaux 1 à 3) reçoit son pourcentage, crédité sur son solde.
-function distribuerBonus(d){
- var c=comptes.filter(function(x){return x.id===d.uid})[0],tot=0;
- if(!c)return 0;
- parrains(c).forEach(function(p,i){
-  var pc=+CONFIG["p"+(i+1)]||0,b=Math.round(d.montant*pc/100);
-  if(b>0){crediter(p.id,b);bons.unshift({id:"B"+Date.now()+i,uid:p.id,de:c.pseudo,niv:i+1,base:d.montant,pc:pc,bonus:b,date:new Date().toLocaleDateString("fr-FR"),did:d.id});tot+=b}});
- ecrire("bons",bons);return tot}
-// Retraits : ouverts seulement entre CONFIG.hd h et CONFIG.hf h (heure de l’appareil ; le serveur décidera plus tard).
-function retraitOuvert(){var d=new Date(),m=d.getHours()*60+d.getMinutes();return m>=CONFIG.hd*60&&m<CONFIG.hf*60}
 function banniereRetrait(){
  var o=retraitOuvert();
  return '<div class="fiche"><div class="ligne" style="border:0;padding:0"><b class="'+(o?"j":"r")+'">'+(o?"● Retraits ouverts":"● Retraits fermés")+'</b><span>de '+CONFIG.hd+'h à '+CONFIG.hf+'h</span></div>'+
@@ -203,38 +151,153 @@ function pronoHtml(){
  else if(mine)h+='<div class="ligne"><span>Ta mise</span><b class="j">'+mine.mise+' F</b></div>';
  else h+='<div class="mise"><input id="ppm" type="number" inputmode="numeric" min="1" placeholder="Mise en F"></div><button class="ok" id="pp">Participer</button>';
  return h+'</div>'}
-function participer(){
- var p=pronostic,m=+($("ppm").value||0);
- if(!p||p.st!=="ouvert")return;
- if(!ouvert(find(p.mid))){toast("Le match a commencé : participation fermée.");return}
- if(!(m>0)){toast("Entre ta mise en F.");return}
- if(m>solde){toast("Solde insuffisant. Fais une demande de recharge.");return}
- parts.unshift({id:"R"+Math.floor(100000+Math.random()*900000),pid:p.id,uid:sess.id,pseudo:sess.pseudo,a:p.a,b:p.b,score:p.score,cote:p.cote,mise:m,date:new Date().toLocaleDateString("fr-FR"),st:"cours"});
- ecrire("parts",parts);solde-=m;sess.solde=solde;sauver();toast("Participation enregistrée.");if(window.rendre)rendre()}
 
 
-// ===== Évènements : chargés depuis Supabase (table « evenements », lecture publique des matchs publiés) =====
+// ===== Supabase : connexion, données et actions (le serveur décide de tout : soldes, paris, admin) =====
 var SB_URL="https://vxefmhkoojbjxtczjujo.supabase.co",
  SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4ZWZtaGtvb2pianh0Y3pqdWpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMTYzMjMsImV4cCI6MjEwODU5MjMyM30.1W76QHjIt0lkt8PhUXYzwnni4B0yQJ9Tyvcqc3CAOe8";
+var AUTH=lire("sbauth",null),DASH=lire("dash",null),ARBRE=lire("arbre",[]),RO=lire("ro",null);
+if(!AUTH&&location.pathname.indexOf("connexion")<0)location.href="connexion.html";
+
+function enteteSb(t){return {apikey:SB_KEY,Authorization:"Bearer "+(t||SB_KEY),"Content-Type":"application/json"}}
+function msgErr(j,st){var m=j&&(j.message||j.msg||j.error_description||j.error);return m||("Erreur "+st)}
+function garderSession(j){AUTH={at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,uid:(j.user&&j.user.id)||(AUTH&&AUTH.uid)};ecrire("sbauth",AUTH)}
+var _rf=null;
+function jeton(){
+ if(!AUTH)return Promise.reject(new Error("Connecte-toi pour continuer."));
+ if(AUTH.exp-Date.now()>60000)return Promise.resolve(AUTH.at);
+ if(!_rf)_rf=fetch(SB_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:enteteSb(),body:JSON.stringify({refresh_token:AUTH.rt})})
+  .then(function(r){return r.json().catch(function(){return {}}).then(function(j){return {r:r,j:j}})})
+  .then(function(x){_rf=null;if(!x.r.ok||!x.j.access_token){quitter("Session expirée. Reconnecte-toi.");throw new Error("Session expirée.")}garderSession(x.j);return AUTH.at},
+   function(e){_rf=null;throw e});
+ return _rf}
+function sbq(path,opt,anon){
+ return (anon?Promise.resolve(SB_KEY):jeton()).then(function(t){
+  var o=Object.assign({headers:enteteSb(t)},opt||{});
+  return fetch(SB_URL+path,o)}).then(function(r){
+   return r.text().then(function(txt){var j=null;try{j=txt?JSON.parse(txt):null}catch(e){}
+    if(!r.ok)throw new Error(msgErr(j,r.status));return j})})}
+function rpc(nom,args,anon){return sbq("/rest/v1/rpc/"+nom,{method:"POST",body:JSON.stringify(args||{})},anon)}
+function lireT(p){return sbq("/rest/v1/"+p)}
+
+function viderCache(){["sess","comptes","hist","demandes","bons","pronostic","parts","events","evcodes","dash","arbre","ro","coupon"].forEach(function(k){try{localStorage.removeItem(k)}catch(e){}})}
+function quitter(msg){viderCache();try{localStorage.removeItem("sbauth")}catch(e){}AUTH=null;sess=null;if(msg)ecrire("flash",msg);location.href="connexion.html"}
+
+function seConnecter(ident,pw){
+ return rpc("email_connexion",{p_identifiant:ident},true).then(function(mail){
+  if(!mail)throw new Error("Compte introuvable. Crée un compte.");
+  return fetch(SB_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:enteteSb(),body:JSON.stringify({email:mail,password:pw})})}).then(function(r){
+   return r.json().catch(function(){return {}}).then(function(j){
+    if(!r.ok||!j.access_token)throw new Error("Mot de passe incorrect.");
+    viderCache();garderSession(j)})})}
+function creerCompte(d){
+ var pseudo=d.pseudo.trim();
+ if(!/^[A-Za-z0-9_.-]{3,20}$/.test(pseudo))return Promise.reject(new Error("Nom d’utilisateur : 3 à 20 caractères (lettres, chiffres, _ . -)."));
+ return rpc("email_connexion",{p_identifiant:pseudo},true).then(function(pris){
+  if(pris)throw new Error("Ce nom d’utilisateur est déjà pris.");
+  return fetch(SB_URL+"/auth/v1/signup",{method:"POST",headers:enteteSb(),body:JSON.stringify({email:pseudo.toLowerCase()+"@pronosarena.app",password:d.pw,
+   data:{pseudo:pseudo,tel:d.tel,email_contact:d.email,prenom:"",nom:"",parrain_code:d.parrain}})})}).then(function(r){
+    if(!r.ok)throw new Error("Inscription impossible : code de parrainage introuvable ou nom réservé.");
+    return seConnecter(pseudo,d.pw)})}
+function changerMdp(){
+ var n=prompt("Nouveau mot de passe (8 caractères minimum) :");if(n===null)return;
+ if(n.length<8){toast("8 caractères minimum.");return}
+ sbq("/auth/v1/user",{method:"PUT",body:JSON.stringify({password:n})}).then(function(){toast("Mot de passe modifié.")},function(e){toast(e.message)})}
+
 function evBase(r){
  var q={"1":+r.q1,X:+r.qx,"2":+r.q2};
  if(r.q_bo&&r.q_bn){q.bo=+r.q_bo;q.bn=+r.q_bn}
  if(r.q_po&&r.q_pu){q.po=+r.q_po;q.pu=+r.q_pu}
  return {id:r.id,code:r.code,l:r.competition||"",a:r.equipe1,b:r.equipe2,start:Date.parse(r.debut),q:q,pub:!!r.publie,st:r.statut,
   res:(r.score1!=null&&r.score2!=null)?r.score1+"-"+r.score2:null}}
-function chargerEvents(){
- if(!window.fetch||!sess)return;
- var depuis=new Date(Date.now()-3*864e5).toISOString();
- fetch(SB_URL+"/rest/v1/evenements?select=id,code,competition,equipe1,equipe2,debut,q1,qx,q2,q_bo,q_bn,q_po,q_pu,publie,statut,score1,score2&debut=gte."+encodeURIComponent(depuis)+"&order=debut.asc&limit=300",
-  {headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}})
- .then(function(r){if(!r.ok)throw 0;return r.json()})
- .then(function(rows){
-  var nv=rows.map(evBase);
-  if(JSON.stringify(nv)===JSON.stringify(EV))return;
-  EV=nv;ecrire("events",EV);
-  // Matchs terminés ou annulés côté base : les tickets en cours sont réglés (sans effet s’ils le sont déjà).
-  nv.forEach(function(m){if(m.st==="annule"||(m.st==="clos"&&m.res))reglerEvent(m)});
-  Object.keys(coupon).forEach(function(i){if(!ouvert(find(i))||coupon[i].k===undefined)delete coupon[i]});ecrire("coupon",coupon);
-  badge();if(window.rendre)rendre()})
- .catch(function(){})}
-chargerEvents();
+function dfr(t){return new Date(t).toLocaleDateString("fr-FR")}
+function gainT(t){return t.st==="gagne"&&t.gain>0?t.gain:Math.round(t.mise*t.cote)}
+function arbre(){var n=[[],[],[]];(ARBRE||[]).forEach(function(x){if(n[x.niveau-1])n[x.niveau-1].push({id:x.user_id,pseudo:x.pseudo,rapporte:+x.rapporte||0})});return n}
+function retraitOuvert(){if(RO!==null)return !!RO;var d=new Date(),m=d.getHours()*60+d.getMinutes();return m>=CONFIG.hd*60&&m<CONFIG.hf*60}
+
+var _snap="",_p=null,_again=false;
+function chargerCoeur(){
+ var uid=AUTH.uid,depuis=new Date(Date.now()-7*864e5).toISOString();
+ var ess=function(p){return lireT(p).catch(function(e){return null})};
+ return Promise.all([
+  ess("profiles?select=*&id=eq."+uid),
+  ess("reglages?select=*&id=eq.1"),
+  ess("evenements?select=id,code,competition,equipe1,equipe2,debut,q1,qx,q2,q_bo,q_bn,q_po,q_pu,publie,statut,score1,score2&debut=gte."+encodeURIComponent(depuis)+"&order=debut.asc&limit=500"),
+  ess("evenements_charges?select=evenement_id"),
+  ess("tickets?select=id,user_id,mise,cote,statut,gain,created_at,regle_le,ticket_selections(evenement_id,equipe1,equipe2,choix,libelle,cote,resultat)&order=created_at.desc&limit=500"),
+  ess("participations?select=id,pronostic_id,user_id,mise,cote,statut,created_at,pronostics(equipe1,equipe2,score1,score2)&order=created_at.desc&limit=500"),
+  ess("pronostics?select=*&order=id.desc&limit=1"),
+  ess("demandes?select=*&order=created_at.desc&limit=500"),
+  rpc("mes_bonus").catch(function(){return null}),
+  rpc("arbre_parrainage").catch(function(){return null}),
+  rpc("retraits_ouverts").catch(function(){return null})
+ ]).then(function(R){
+  var p=R[0]&&R[0][0];
+  if(R[0]&&!p){quitter("Compte introuvable.");return}
+  if(p&&p.bloque){quitter("Ce compte est bloqué. Contacte l’administrateur.");return}
+  if(p){sess={id:p.id,pseudo:p.pseudo,email:p.email||"",tel:p.tel||"",prenom:p.prenom||"",nom:p.nom||"",pays:p.pays||"",ville:p.ville||"",
+   code:p.code_parrainage,parrain:p.parrain_code||"",solde:+p.solde||0,bloque:false,is_admin:!!p.is_admin,date:dfr(p.created_at)};solde=sess.solde}
+  var g=R[1]&&R[1][0];
+  if(g)CONFIG={p1:+g.p1,p2:+g.p2,p3:+g.p3,pr:+g.retrait_frais_pct,lien:g.lien_paiement||"",minDep:+g.depot_min,minRet:+g.retrait_min,hd:+g.retrait_heure_debut,hf:+g.retrait_heure_fin};
+  if(R[2]){EV=R[2].map(evBase);
+   Object.keys(coupon).forEach(function(i){if(!ouvert(find(i))||coupon[i].k===undefined)delete coupon[i]});ecrire("coupon",coupon)}
+  if(R[3])evcodes=R[3].map(function(x){return x.evenement_id});
+  if(R[4])hist=R[4].map(function(t){
+   var sel=(t.ticket_selections||[]).map(function(s){return {eid:s.evenement_id,k:s.choix,a:s.equipe1,b:s.equipe2,lb:s.libelle,q:+s.cote,
+    r:s.resultat==="gagne"?true:s.resultat==="perdu"?false:s.resultat==="annule"?"annule":null}});
+   return {id:"T"+t.id,tid:t.id,uid:t.user_id,ts:Date.parse(t.created_at),date:dfr(t.created_at),sel:sel,mise:+t.mise,cote:+t.cote,st:t.statut,gain:+t.gain||0,tsr:t.regle_le?Date.parse(t.regle_le):0}});
+  if(R[5])parts=R[5].map(function(r){var q=r.pronostics||{};
+   return {id:"R"+r.id,rid:r.id,pid:r.pronostic_id,uid:r.user_id,a:q.equipe1,b:q.equipe2,score:q.score1+"-"+q.score2,cote:+r.cote,mise:+r.mise,date:dfr(r.created_at),st:r.statut,gain:r.statut==="gagne"?Math.round(r.mise*r.cote):0}});
+  if(R[6]){var pr=R[6][0];pronostic=pr?{id:pr.id,mid:pr.evenement_id,a:pr.equipe1,b:pr.equipe2,score:pr.score1+"-"+pr.score2,cote:+pr.cote,st:pr.statut,final:pr.final1!=null?pr.final1+"-"+pr.final2:null}:null}
+  if(R[7])demandes=R[7].map(function(d){return {id:"D"+d.id,did:d.id,type:d.type,uid:d.user_id,pseudo:d.pseudo,montant:+d.montant,reseau:d.reseau,preuve:d.preuve||"",tel:d.tel,nom:d.nom,prenom:d.prenom,
+   date:dfr(d.created_at),st:d.statut,pr:d.frais_pct!=null?+d.frais_pct:undefined,frais:d.frais!=null?+d.frais:undefined,net:d.net!=null?+d.net:undefined}});
+  if(R[8]&&sess)bons=R[8].map(function(b){return {id:b.id,uid:sess.id,de:b.filleul,niv:b.niveau,base:+b.base,pc:+b.pourcentage,bonus:+b.bonus,date:dfr(b.created_at)}});
+  if(R[9])ARBRE=R[9];
+  if(R[10]!==null)RO=!!R[10];
+  var suite=Promise.resolve();
+  if(sess&&sess.is_admin){
+   suite=Promise.all([
+    lireT("profiles?select=id,pseudo,email,tel,prenom,nom,solde,bloque,is_admin,code_parrainage,created_at&order=created_at.desc&limit=1000").catch(function(){return null}),
+    rpc("admin_tableau_de_bord").catch(function(){return null})
+   ]).then(function(A){
+    if(A[0])comptes=A[0].map(function(c){return {id:c.id,pseudo:c.pseudo,email:c.email||"",tel:c.tel||"",prenom:c.prenom||"",nom:c.nom||"",solde:+c.solde||0,bloque:!!c.bloque,is_admin:!!c.is_admin,code:c.code_parrainage}});
+    if(A[1])DASH=A[1]})}
+  return suite}).then(function(){
+   ["sess","config","events","evcodes","hist","parts","pronostic","demandes","bons","comptes","dash","arbre","ro"].forEach(function(k){});
+   ecrire("sess",sess);ecrire("config",CONFIG);ecrire("events",EV);ecrire("evcodes",evcodes);ecrire("hist",hist);ecrire("parts",parts);
+   ecrire("pronostic",pronostic);ecrire("demandes",demandes);ecrire("bons",bons);ecrire("comptes",comptes);ecrire("dash",DASH);ecrire("arbre",ARBRE);ecrire("ro",RO);
+   var s=JSON.stringify([sess,CONFIG,EV,evcodes,hist,parts,pronostic,demandes,bons,ARBRE,RO,comptes,DASH]);
+   if(s!==_snap){_snap=s;rafraichirUI()}})}
+function charger(){
+ if(!AUTH)return Promise.resolve();
+ if(_p){_again=true;return _p}
+ _p=chargerCoeur().catch(function(){}).then(function(){_p=null;if(_again){_again=false;return charger()}});
+ return _p}
+function majHaut(){var t=$("top");if(t&&t.innerHTML.trim()&&typeof entete==="function")t.innerHTML=entete()}
+function rafraichirUI(){
+ var a=document.activeElement;
+ if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
+ majHaut();if(window.NAVP&&$("nb"))nav(window.NAVP);
+ if(window.rendre)rendre()}
+// Exécute une action serveur, recharge les données, réaffiche la page et prévient le joueur.
+function agir(fn,ok){
+ return Promise.resolve().then(fn).then(function(r){
+  return charger().then(function(){majHaut();if(window.rendre)rendre();if(ok)toast(typeof ok==="function"?ok(r):ok);return {ok:true,r:r}})},
+  function(e){toast((e&&e.message)||"Erreur.");return {ok:false}})}
+function annulerMise(id){
+ var t=hist.filter(function(x){return x.id===id})[0],p=false;
+ if(!t){t=parts.filter(function(x){return x.id===id})[0];p=true}
+ if(!t||t.st!=="cours")return Promise.resolve(false);
+ if(p?!(pronostic&&pronostic.id===t.pid&&ouvert(find(pronostic.mid))):!peutAnnuler(t)){toast("Impossible : le match a commencé.");return Promise.resolve(false)}
+ return agir(function(){return p?rpc("annuler_participation",{p_participation:t.rid}):rpc("annuler_pari",{p_ticket:t.tid})},"Mise annulée et remboursée.")}
+function participer(){
+ var p=pronostic,m=Math.floor(+($("ppm").value||0));
+ if(!p||p.st!=="ouvert")return;
+ if(!ouvert(find(p.mid))){toast("Le match a commencé : participation fermée.");return}
+ if(!(m>0)){toast("Entre ta mise en F.");return}
+ if(m>solde){toast("Solde insuffisant. Fais une demande de recharge.");return}
+ agir(function(){return rpc("participer_pronostic",{p_pronostic:p.id,p_mise:m})},"Participation enregistrée.")}
+charger();
+setInterval(function(){if(!document.hidden)charger()},30000);
+document.addEventListener("visibilitychange",function(){if(!document.hidden)charger()});
+
