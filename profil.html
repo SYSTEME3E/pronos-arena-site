@@ -20,7 +20,7 @@ function rendre(){
  var s=sess||{};
  $("vue").innerHTML=RETOUR+'<div class="sec"><h2>Mon <span class="j">profil</span></h2></div>'+
  '<div class="fiche"><small>Compte</small>'+
- '<div class="pl"><b>Numéro de compte</b><span>id. '+(s.id||"–")+'</span></div>'+
+ '<div class="pl"><b>Numéro de compte</b><span>id. '+String(s.id||"–").slice(0,8)+'</span></div>'+
  '<div class="pl"><div><b>Nom d’utilisateur</b><small>'+(s.pseudo||"–")+'</small></div></div>'+
  L("email","E-mail",s.email)+L("tel","Numéro de téléphone",s.tel)+
  '<div class="pl"><div><b>Mot de passe</b><small>Géré par le serveur</small></div><button class="go" data-m="mdp">Modifier</button></div>'+
@@ -28,8 +28,9 @@ function rendre(){
  '<div class="fiche"><small>Informations personnelles</small>'+L("prenom","Prénom",s.prenom)+L("nom","Nom",s.nom)+L("pays","Pays",s.pays)+L("ville","Ville",s.ville)+'</div>'}
 $("vue").onclick=function(ev){
  var m=ev.target.closest("[data-m]"),o=ev.target.closest("[data-ok]");
- if(m){if(m.dataset.m==="mdp"){toast("Le changement de mot de passe sera géré par le serveur.");return}ed=m.dataset.m;rendre();var e=$("ev");if(e)e.focus()}
- if(o){sess[o.dataset.ok]=$("ev").value.trim();sauver();ed="";rendre();toast("Information enregistrée.")}};
+ if(m){if(m.dataset.m==="mdp"){changerMdp();return}ed=m.dataset.m;rendre();var e=$("ev");if(e)e.focus()}
+ if(o){var k=o.dataset.ok,v=$("ev").value.trim(),d={email:sess.email,tel:sess.tel,prenom:sess.prenom,nom:sess.nom,pays:sess.pays,ville:sess.ville};d[k]=v;ed="";
+  agir(function(){return rpc("maj_profil",{p_email:d.email,p_tel:d.tel,p_prenom:d.prenom,p_nom:d.nom,p_pays:d.pays,p_ville:d.ville})},"Information enregistrée.")}};
 rendre();
 </script>
 </body>
