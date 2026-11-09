@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Parrainage</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("menu");
+function rendre(){
+ var p=[CONFIG.p1,CONFIG.p2,CONFIG.p3],A=arbre(),me=sess||{},mes=bons.filter(function(b){return b.uid===me.id});
+ var h=RETOUR+'<div class="sec"><h2>Mon arbre de <span class="b">parrainage</span></h2></div>'+
+ '<div class="fiche"><small>Mon code de parrainage</small><div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><b class="j" style="font-size:22px">'+esc(me.code||"–")+'</b><button class="go" id="cp">Copier</button></div></div>';
+ for(var n=1;n<=3;n++){
+  var l=A[n-1];
+  h+='<div class="fiche"><div style="display:flex;justify-content:space-between"><b>Niveau '+n+'</b><b class="j">'+p[n-1]+' %</b></div><small>'+l.length+' filleul'+(l.length>1?"s":"")+'</small>'+
+   l.map(function(f){var g=mes.filter(function(b){return b.de===f.pseudo}).reduce(function(s,b){return s+b.bonus},0);return '<div class="ligne"><span>'+esc(f.pseudo)+'</span><b class="j">'+g+' F</b></div>'}).join("")+'</div>'}
+ h+='<p class="leg">Tu reçois ce pourcentage sur chaque recharge validée de tes filleuls. Le montant à droite est ce que chaque filleul t’a déjà rapporté. Les pourcentages sont réglés par l’administrateur.</p>';
+ $("vue").innerHTML=h}
+$("vue").onclick=function(ev){
+ if(ev.target.closest("#cp")){try{navigator.clipboard.writeText(sess.code)}catch(e){}toast("Code copié.")}};
+rendre();
+</script>
+</body>
+</html>

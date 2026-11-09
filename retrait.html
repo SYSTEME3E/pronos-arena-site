@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Retrait</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("menu");
+function rendre(){
+ var s=sess||{},mes=demandes.filter(function(x){return x.uid===s.id&&x.type==="retrait"});
+ $("vue").innerHTML=RETOUR+'<div class="sec"><h2>Demande de <span class="r">retrait</span></h2></div>'+
+ '<div class="fiche"><small>Solde actuel</small><div class="j" style="font-size:26px;font-weight:800">'+solde+' F</div></div>'+
+ banniereRetrait()+
+ '<input class="in" id="rm" type="number" inputmode="numeric" min="1" placeholder="Montant à retirer (F)">'+
+ '<input class="in" id="rr" list="rl" placeholder="Réseau (ex. Orange, MTN, Moov, Wave)" autocomplete="off"><datalist id="rl"><option value="Orange Money"><option value="MTN MoMo"><option value="Moov Money"><option value="Wave"></datalist>'+
+ '<input class="in" id="rt" type="tel" placeholder="Numéro" value="'+esc(s.tel)+'">'+
+ '<input class="in" id="rn" placeholder="Nom" value="'+esc(s.nom)+'">'+
+ '<input class="in" id="rp" placeholder="Prénom" value="'+esc(s.prenom)+'">'+
+ '<div class="fiche" id="fr"></div>'+
+ '<button class="ok" id="env"'+(retraitOuvert()?'':' style="opacity:.5"')+'>Envoyer la demande</button>'+
+ '<div class="sec"><h2>Mes demandes</h2></div>'+(mes.length?mes.map(function(x){return carteDemande(x)}).join(""):'<p class="vide">Aucune demande pour le moment.</p>');
+ apercu()}
+function calc(m){var f=Math.round(m*(+CONFIG.pr||0)/100);return {frais:f,net:m-f}}
+function apercu(){
+ var m=+($("rm")||{}).value||0,c=calc(m);
+ var e=$("fr");if(!e)return;e.innerHTML='<div class="ligne"><span>Frais de retrait ('+(+CONFIG.pr||0)+' %)</span><b class="r">− '+c.frais+' F</b></div><div class="ligne" style="border:0"><span>Tu recevras</span><b class="j">'+c.net+' F</b></div>'}
+$("vue").oninput=function(ev){if(ev.target.id==="rm")apercu()};
+$("vue").onclick=function(ev){
+ if(!ev.target.closest("#env"))return;
+ if(!retraitOuvert()){toast("Les retraits sont ouverts de "+CONFIG.hd+"h à "+CONFIG.hf+"h.");return}
+ var m=+$("rm").value,r=$("rr").value.trim(),t=$("rt").value.trim(),n=$("rn").value.trim(),p=$("rp").value.trim();
+ if(!(m>0)||!r||!t||!n||!p){toast("Remplis le montant, le réseau, le numéro, le nom et le prénom.");return}
+ if(CONFIG.minRet>0&&m<CONFIG.minRet){toast("Retrait minimum : "+CONFIG.minRet+" F.");return}
+ if(m>solde){toast("Solde insuffisant.");return}
+ demandes.unshift({type:"retrait",id:"D"+Math.floor(100000+Math.random()*900000),uid:sess.id,pseudo:sess.pseudo,montant:m,reseau:r,pr:+CONFIG.pr||0,frais:calc(m).frais,net:calc(m).net,tel:t,nom:n,prenom:p,date:new Date().toLocaleDateString("fr-FR"),st:"attente"});
+ ecrire("demandes",demandes);toast("Demande envoyée. L’administrateur va la vérifier.");rendre()};
+rendre();
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Favoris</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("favoris");
+function rendre(){
+ var l=visibles().filter(function(m){return favs[m.id]});
+ $("vue").innerHTML='<div class="sec"><h2>Mes <span class="j">favoris</span></h2></div>'+(l.length?'<div class="rail">'+l.filter(ouvert).map(carte).join("")+'</div>':'<p class="vide">Touche l’étoile d’un match pour le retrouver ici.</p>');
+ tic()}
+rendre();
+</script>
+</body>
+</html>

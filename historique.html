@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Historique</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("historique");var onglet="cours";
+function rendre(){
+ var H=tousTickets(),nc=H.filter(function(t){return t.st==="cours"}).length,nt=H.length-nc;
+ var l=H.filter(function(t){return onglet==="cours"?t.st==="cours":t.st!=="cours"});
+ $("vue").innerHTML='<div class="sec"><h2><span class="b">Historique</span> des paris</h2></div>'+
+ '<div class="tabs" style="position:static;margin-bottom:14px"><button class="tab" data-on="cours" aria-selected="'+(onglet==="cours")+'">En cours ('+nc+')</button><button class="tab" data-on="fini" aria-selected="'+(onglet==="fini")+'">Terminés ('+nt+')</button></div>'+
+ (l.length?l.map(function(t){return carteTicket(t)}).join(""):'<p class="vide">'+(onglet==="cours"?"Aucun pari en cours. Valide un ticket pour le voir ici.":"Aucun pari terminé pour le moment.")+'</p>')}
+$("vue").onclick=function(ev){var o=ev.target.closest("[data-on]"),a=ev.target.closest("[data-an]");if(o){onglet=o.dataset.on;rendre()}if(a){if(annulerMise(a.dataset.an)){toast("Mise annulée et remboursée.")}else toast("Impossible : le match a commencé.");rendre()}};
+rendre();
+</script>
+</body>
+</html>

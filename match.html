@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Match</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("index");
+var MID0=+((location.search.match(/id=(\d+)/)||[])[1])||0;
+var m=find(MID0),filtre="tous",ouv={r:1,dc:1,bt:1,to:1};
+function opt(mk,x){
+ var on=coupon[m.id]&&coupon[m.id].k===x.k,lb=mk.id==="r"?x.lb:mk.t+" : "+x.lb;
+ return '<button class="cote" data-m="'+m.id+'" data-k="'+x.k+'" data-lb="'+esc(lb)+'" data-q="'+x.q+'" aria-pressed="'+!!on+'"'+(ouvert(m)?'':' disabled style="opacity:.5"')+'><span>'+x.lb+'</span><b>'+(+x.q).toFixed(2)+'</b></button>'}
+function rendre(){
+ if(!m){$("vue").innerHTML=RETOUR.replace("menu.html","index.html").replace("← Menu","← Accueil")+'<p class="vide">Évènement introuvable.</p>';return}
+ var l=marches(m).filter(function(x){return filtre==="tous"||(filtre==="pop"&&x.pop)||(filtre==="tot"&&x.tot)});
+ var quand=new Date(m.start).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"});
+ var centre=m.res?'<div class="j" style="font-size:28px;font-weight:800">'+esc(m.res.replace("-"," : "))+'</div><div class="cd">Terminé</div>':
+  m.st==="annule"?'<div class="j" style="font-size:24px">VS</div><div class="cd">Annulé</div>':
+  '<div class="j" style="font-size:24px">VS</div><div class="cd">'+(ouvert(m)?'Démarre dans<br><span data-cd="'+m.id+'"></span>':'Match en cours')+'</div>';
+ $("vue").innerHTML='<div class="ban"><div style="display:flex;align-items:center;gap:10px"><a href="index.html" data-p="index" class="tout" style="text-decoration:none;color:inherit">←</a><b style="flex:1;text-align:center;font-size:15px">'+esc(m.l)+'</b><span style="width:40px"></span></div>'+
+  '<div class="vs" style="margin:18px 0 6px"><div class="eq" style="flex-direction:column;text-align:center">'+lg(m.a,m.ca,m.la)+'<span>'+esc(m.a)+'</span></div>'+
+  '<div style="text-align:center">'+centre+'</div>'+
+  '<div class="eq" style="flex-direction:column;text-align:center">'+lg(m.b,m.cb,m.lb)+'<span>'+esc(m.b)+'</span></div></div>'+
+  '<p class="cd" style="margin:8px 0 0">'+quand+'</p></div>'+
+  (ouvert(m)?'':'<p class="leg" style="text-align:center">Les paris sont fermés pour ce match.</p>')+
+  '<div class="chips">'+[["tous","Tous les marchés"],["pop","Populaires"],["tot","Total"]].map(function(f){return '<button class="chip" data-f="'+f[0]+'" aria-pressed="'+(filtre===f[0])+'">'+f[1]+'</button>'}).join("")+'</div>'+
+  l.map(function(x){var op=ouv[x.id];return '<div class="mk"><button class="mkh" data-mk="'+x.id+'">'+x.t+'<span>('+x.o.length+') '+(op?"⌃":"⌄")+'</span></button>'+(op?'<div class="mkb" style="grid-template-columns:repeat('+x.cols+',1fr)">'+x.o.map(function(y){return opt(x,y)}).join("")+'</div>':'')+'</div>'}).join("");
+ tic()}
+$("vue").addEventListener("click",function(ev){
+ var a=ev.target.closest("[data-mk]"),f=ev.target.closest("[data-f]");
+ if(a){ouv[a.dataset.mk]=!ouv[a.dataset.mk];rendre()}
+ if(f){filtre=f.dataset.f;rendre()}});
+rendre();
+</script>
+</body>
+</html>

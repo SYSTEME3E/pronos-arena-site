@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Admin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("menu");
+function estAdmin(){return sess&&sess.pseudo.toLowerCase()==="admin"}
+var onglet=(location.search.match(/t=(\w+)/)||[])[1]||"accueil",ft="tous",fs="tous",rq="",sup="",fe="ouverts",cfm=null;
+function fm(n){return String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g," ")}
+function somme(l,f){return l.reduce(function(s,x){return s+f(x)},0)}
+function estAdm(c){return (c.pseudo||"").toLowerCase()==="admin"}
+function adminProno(){
+ var p=pronostic,h='<div class="fiche"><b>Pronostic du jour</b>';
+ var mine=p?parts.filter(function(x){return x.pid===p.id&&x.st!=="annule"}):[];
+ if(p&&p.st==="ouvert"){
+  var tot=mine.reduce(function(s,x){return s+x.mise},0);
+  h+='<div class="ligne"><span>'+esc(p.a)+' – '+esc(p.b)+'</span><b class="j">'+esc(p.score.replace("-"," : "))+'</b></div>'+
+   '<div class="ligne"><span>Cote de gain</span><b>'+p.cote.toFixed(2)+'</b></div><div class="ligne"><span>Participants</span><b>'+mine.length+' ('+tot+' F)</b></div>'+
+   '<small style="display:block;margin:10px 0 4px">Score final du match</small><div style="display:flex;gap:8px"><input class="in" id="fa" type="number" min="0" placeholder="Équipe 1"><input class="in" id="fb" type="number" min="0" placeholder="Équipe 2"></div><button class="ok" id="fin">Terminer le match</button>'}
+ else{
+  if(p&&p.st==="clos"){
+   var g=mine.filter(function(x){return x.st==="gagne"}).length,pe=mine.filter(function(x){return x.st==="perdu"}),re=mine.filter(function(x){return x.st==="rembourse"}).length;
+   h+='<div class="ligne"><span>'+esc(p.a)+' – '+esc(p.b)+' (pronostic '+esc(p.score.replace("-"," : "))+')</span><b>Final '+esc(p.final.replace("-"," : "))+'</b></div>'+
+    '<div class="ligne"><span>Gagnants</span><b class="j">'+g+'</b></div><div class="ligne"><span>Perdants</span><b class="r">'+pe.length+'</b></div>'+(re?'<div class="ligne"><span>Remboursés</span><b class="b">'+re+'</b></div>':'');
+   if(pe.length)h+='<button class="ok" id="rem" style="margin:10px 0">Rembourser tout ('+pe.reduce(function(s,x){return s+x.mise},0)+' F)</button>'}
+  h+='<small style="display:block;margin:10px 0 6px">Nouveau pronostic : choisis un match, le score et la cote.</small><select class="in" id="pm">'+EV.filter(function(x){return x.st!=="annule"}).map(function(x){return '<option value="'+x.id+'">'+esc(x.a)+' – '+esc(x.b)+'</option>'}).join("")+'</select>'+
+   '<div style="display:flex;gap:8px"><input class="in" id="pa" type="number" min="0" placeholder="Buts équipe 1"><input class="in" id="pb" type="number" min="0" placeholder="Buts équipe 2"></div><input class="in" id="pc" type="number" step="0.01" min="1.01" value="1.50" placeholder="Cote de gain"><button class="ok" id="pub">Publier en haut de l’accueil</button>'}
+ return h+'</div>'}
+function gererProno(ev){
+ var b=ev.target.closest("button"),id=b?b.id:"";
+ if(id==="pub"){var x=find(+$("pm").value);if(!x){toast("Crée d’abord un évènement.");return true}var sa=$("pa").value,sb=$("pb").value,cq=+$("pc").value;
+  if(sa===""||sb===""||!(cq>1)){toast("Choisis le match, le score et une cote supérieure à 1.");return true}
+  pronostic={id:"P"+Date.now(),mid:x.id,a:x.a,b:x.b,score:(+sa)+"-"+(+sb),cote:cq,st:"ouvert"};ecrire("pronostic",pronostic);rendre();toast("Pronostic publié en haut de l’accueil.");return true}
+ if(id==="fin"){var fa=$("fa").value,fb=$("fb").value;if(fa===""||fb===""){toast("Saisis le score final.");return true}
+  var fin=(+fa)+"-"+(+fb);pronostic.final=fin;pronostic.st="clos";
+  parts.forEach(function(r){if(r.pid===pronostic.id&&r.st==="cours"){if(fin!==pronostic.score){r.st="gagne";crediter(r.uid,Math.round(r.mise*r.cote))}else r.st="perdu"}});
+  ecrire("parts",parts);ecrire("pronostic",pronostic);rendre();toast("Match terminé, résultats appliqués.");return true}
+ if(id==="rem"){parts.forEach(function(r){if(r.pid===pronostic.id&&r.st==="perdu"){r.st="rembourse";crediter(r.uid,r.mise)}});ecrire("parts",parts);rendre();toast("Toutes les mises perdues sont remboursées.");return true}
+ return false}
+
+
+function codeLibre(){var k,A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";do{k="EV";for(var i=0;i<5;i++)k+=A[Math.floor(Math.random()*A.length)]}while(EV.some(function(x){return x.code===k}));return k}
+function nbParis(id){return hist.filter(function(t){return t.st!=="annule"}).reduce(function(n,t){return n+t.sel.filter(function(s){return s.eid===id}).length},0)}
+function fdate(t){return new Date(t).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"})}
+function inp(id,ph,extra){return '<input class="in" id="'+id+'" '+(extra||"")+' placeholder="'+ph+'" style="margin:0;min-width:0">'}
+function carteEvent(m){
+ var n=nbParis(m.id),dem=m.start<=Date.now(),q=m.q,fin=m.st!=="ouvert";
+ var et=m.st==="annule"?'<b class="b">Annulé</b>':m.st==="clos"?'<b class="j">Terminé '+esc(m.res.replace("-"," : "))+'</b>':dem?'<b class="r">● Commencé</b>':'<b class="j">Ouvert</b>';
+ var h='<article class="match"><div class="meta"><span>'+esc(m.l||"Évènement")+'</span>'+et+'</div>'+
+  '<div style="font-weight:800;font-size:16px;margin:2px 0 4px">'+esc(m.a)+' – '+esc(m.b)+'</div>'+
+  '<div class="ligne"><span>Coup d’envoi</span><b>'+fdate(m.start)+'</b></div>'+
+  '<div class="ligne"><span>Code</span><span><b class="j">'+esc(m.code)+'</b> <button class="go" data-ex="cp" data-e="'+m.id+'">Copier</button></span></div>'+
+  '<div class="ligne"><span>Visibilité</span><b>'+(m.pub?"Accueil":"Code seulement")+'</b></div>'+
+  '<div class="ligne"><span>Cotes 1X2</span><b class="j">'+q["1"].toFixed(2)+' · '+q.X.toFixed(2)+' · '+q["2"].toFixed(2)+'</b></div>'+
+  (q.bo?'<div class="ligne"><span>Les deux marquent</span><b class="j">'+q.bo.toFixed(2)+' · '+q.bn.toFixed(2)+'</b></div>':'')+
+  (q.po?'<div class="ligne"><span>Total 2.5</span><b class="j">'+q.po.toFixed(2)+' · '+q.pu.toFixed(2)+'</b></div>':'')+
+  '<div class="ligne"><span>Sélections jouées</span><b>'+n+'</b></div>';
+ if(!fin&&cfm&&cfm.id===m.id){
+  h+='<p class="leg" style="margin:10px 0 6px">'+(cfm.t==="res"?'Confirmer le score final <b>'+cfm.a+' : '+cfm.b+'</b> ? Les tickets seront réglés et les gains crédités.':cfm.t==="ann"?'Annuler cet évènement ? Les sélections sont remboursées (cote 1.00).':'Supprimer cet évènement ?')+'</p>'+
+   '<div style="display:flex;gap:8px"><button class="ok" style="width:auto;padding:8px 16px" data-ex="oui" data-e="'+m.id+'">Confirmer</button><button class="tout" data-ex="non" data-e="'+m.id+'">Retour</button></div>'}
+ else if(!fin){
+  if(dem)h+='<small style="display:block;margin:10px 0 4px">Score final</small><div style="display:flex;gap:8px"><input class="in" id="ra'+m.id+'" type="number" min="0" inputmode="numeric" placeholder="'+esc(m.a)+'" style="margin:0;min-width:0"><input class="in" id="rb'+m.id+'" type="number" min="0" inputmode="numeric" placeholder="'+esc(m.b)+'" style="margin:0;min-width:0"><button class="ok" style="width:auto;padding:8px 14px" data-ex="res" data-e="'+m.id+'">Valider</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:10px"><button class="tout" data-ex="ann" data-e="'+m.id+'">Annuler l’évènement</button>'+(n?'':'<button class="tout r" data-ex="sup" data-e="'+m.id+'">Supprimer</button>')+'</div>'}
+ return h+'</article>'}
+function evenementsTab(){
+ var l=EV.filter(function(m){return fe==="ouverts"?m.st==="ouvert":m.st!=="ouvert"}).sort(function(x,y){return fe==="ouverts"?x.start-y.start:y.start-x.start});
+ return '<p class="leg" style="margin-bottom:8px">Les évènements, leurs cotes et leurs scores arrivent automatiquement depuis l’API. Tu peux corriger un résultat ou annuler un match ici si besoin.</p>'+chipsF([["ouverts","À venir et en cours"],["termines","Terminés"]],fe,"data-fe")+
+  '<p class="leg" style="margin-bottom:10px">'+l.length+' évènement'+(l.length>1?"s":"")+'</p>'+(l.length?l.map(carteEvent).join(""):'<p class="vide" style="padding:20px 0">Aucun évènement.</p>')}
+function gererEvent(t){
+ var fc=t.closest("[data-fe]");if(fc){fe=fc.dataset.fe;cfm=null;rendre();return true}
+ var x=t.closest("[data-ex]");if(!x)return false;
+ var m=find(+x.dataset.e),act=x.dataset.ex;if(!m)return true;
+ if(act==="cp"){try{navigator.clipboard.writeText(m.code)}catch(e){}toast("Code copié.");return true}
+ if(act==="res"){var ra=$("ra"+m.id).value,rb=$("rb"+m.id).value;
+  if(ra===""||rb===""||ra<0||rb<0){toast("Saisis le score final des deux équipes.");return true}
+  cfm={id:m.id,t:"res",a:Math.floor(+ra),b:Math.floor(+rb)};rendre();return true}
+ if(act==="ann"||act==="sup"){cfm={id:m.id,t:act};rendre();return true}
+ if(act==="non"){cfm=null;rendre();return true}
+ if(act==="oui"&&cfm&&cfm.id===m.id){
+  if(m.st!=="ouvert"){cfm=null;rendre();return true}
+  if(cfm.t==="res"){m.res=cfm.a+"-"+cfm.b;m.st="clos";ecrire("events",EV);reglerEvent(m);toast("Résultat enregistré, tickets réglés.")}
+  else if(cfm.t==="ann"){m.st="annule";ecrire("events",EV);reglerEvent(m);toast("Évènement annulé, sélections remboursées.")}
+  else if(!nbParis(m.id)){EV=EV.filter(function(e){return e.id!==m.id});ecrire("events",EV);toast("Évènement supprimé.")}
+  cfm=null;rendre()}
+ return true}
+
+function totaux(){
+ var dep=demandes.filter(function(x){return x.type!=="retrait"}),ret=demandes.filter(function(x){return x.type==="retrait"});
+ var pa=hist.concat(parts),g=pa.filter(function(x){return x.st==="gagne"}),pe=pa.filter(function(x){return x.st==="perdu"});
+ function ok(l){return l.filter(function(x){return x.st==="valide"})}function at(l){return l.filter(function(x){return x.st==="attente"})}
+ var m=function(x){return x.montant};
+ return {dep:somme(ok(dep),m),ret:somme(ok(ret),m),gag:somme(g,function(x){return Math.round(x.mise*x.cote)}),ng:g.length,per:somme(pe,function(x){return x.mise}),np:pe.length,ad:at(dep),ar:at(ret)}}
+function stat(l,v,c,s){return '<div class="st"><small>'+l+'</small><b'+(c==="v"?' style="color:var(--vert)"':c?' class="'+c+'"':'')+'>'+v+'</b>'+(s?'<small style="display:block">'+s+'</small>':'')+'</div>'}
+function accueil(){
+ var T=totaux(),m=function(x){return x.montant},att=T.ad.concat(T.ar).sort(function(a,b){return demandes.indexOf(a)-demandes.indexOf(b)});
+ return '<div class="stats" style="grid-template-columns:repeat(2,1fr)">'+
+  stat("Total rechargé",fm(T.dep)+" F","v")+stat("Total retiré",fm(T.ret)+" F","b")+
+  stat("Gagné par les joueurs",fm(T.gag)+" F","j",T.ng+" pari"+(T.ng>1?"s":""))+stat("Perdu par les joueurs",fm(T.per)+" F","r",T.np+" pari"+(T.np>1?"s":""))+
+  stat("Dépôts en attente",T.ad.length,"",fm(somme(T.ad,m))+" F")+stat("Retraits en attente",T.ar.length,"",fm(somme(T.ar,m))+" F")+'</div>'+
+  '<div class="sec"><h2>En attente ('+att.length+')</h2></div>'+(att.length?att.map(function(x){return carteDemande(x,1)}).join(""):'<p class="vide">Aucune demande en attente.</p>')}
+function chipsF(l,cur,att){return '<div class="chips">'+l.map(function(x){return '<button class="chip" '+att+'="'+x[0]+'" aria-pressed="'+(cur===x[0])+'">'+x[1]+'</button>'}).join("")+'</div>'}
+function demandesTab(){
+ var l=demandes.filter(function(x){return (ft==="tous"||(ft==="retrait"?x.type==="retrait":x.type!=="retrait"))&&(fs==="tous"||x.st===fs)});
+ return chipsF([["tous","Tous"],["recharge","Dépôts"],["retrait","Retraits"]],ft,"data-ft")+chipsF([["tous","Tous les statuts"],["attente","En attente"],["valide","Validées"],["refuse","Refusées"]],fs,"data-fs")+
+  '<p class="leg" style="margin-bottom:10px">'+l.length+' demande'+(l.length>1?"s":"")+'</p>'+(l.length?l.map(function(x){return carteDemande(x,1)}).join(""):'<p class="vide">Aucune demande.</p>')}
+function carteCompte(c){
+ var id=esc(c.id),adm=estAdm(c),d=c.dernier;
+ return '<article class="match"><div class="meta"><span>'+esc(c.pseudo)+' · id. '+id+'</span>'+(c.bloque?'<b class="r">Bloqué</b>':'<b class="j">Actif</b>')+'</div>'+
+  '<div class="ligne"><span>Solde</span><b class="j">'+fm(c.solde)+' F</b></div>'+
+  (c.tel?'<div class="ligne"><span>Téléphone</span><b>'+esc(c.tel)+'</b></div>':'')+
+  (d?'<div class="ligne"><span>Dernier ajustement ('+esc(d.date)+')</span><b class="'+(d.m>0?"j":"r")+'">'+(d.m>0?"+":"−")+fm(Math.abs(d.m))+' F</b></div>':'')+
+  (adm?'<p class="leg" style="margin:10px 0 0">Compte administrateur.</p>':
+  '<div style="display:flex;gap:8px;margin-top:10px"><input class="in" id="am'+id+'" type="number" inputmode="numeric" min="1" placeholder="Montant (F)" style="margin:0;min-width:0"><button class="tout" data-a="add" data-u="'+id+'">+ Ajouter</button><button class="tout" data-a="sub" data-u="'+id+'">− Retirer</button></div>'+
+  '<div style="display:flex;gap:8px;margin-top:10px"><button class="tout" data-a="blk" data-u="'+id+'">'+(c.bloque?"Débloquer":"Bloquer")+'</button>'+
+  (sup===c.id?'<button class="ok" style="width:auto;padding:5px 14px" data-a="delok" data-u="'+id+'">Confirmer la suppression</button><button class="tout" data-a="delno" data-u="'+id+'">Annuler</button>':'<button class="tout r" data-a="del" data-u="'+id+'">Supprimer</button>')+'</div>'+
+  (sup===c.id?'<p class="leg" style="margin:8px 0 0">Ses demandes en attente seront refusées et ses filleuls ne seront plus rattachés.</p>':''))+'</article>'}
+function listeComptes(){
+ var q=rq.toLowerCase(),l=comptes.filter(function(c){return !q||((c.pseudo||"")+" "+c.id+" "+(c.email||"")+" "+(c.tel||"")).toLowerCase().indexOf(q)>-1});
+ return l.length?l.map(carteCompte).join(""):'<p class="vide">Aucun compte trouvé.</p>'}
+function comptesTab(){
+ var nb=comptes.filter(function(c){return c.bloque}).length;
+ return '<p class="leg" style="margin-bottom:8px">'+comptes.length+' compte'+(comptes.length>1?"s":"")+(nb?" · "+nb+" bloqué"+(nb>1?"s":""):"")+'</p>'+
+  '<input class="in" id="cq" placeholder="Chercher : nom, numéro, e-mail, téléphone" value="'+esc(rq)+'"><div id="lc">'+listeComptes()+'</div>'}
+function reglages(){
+ return '<div class="fiche"><b>Parrainage</b><small style="display:block;margin-bottom:6px">Pourcentage de chaque niveau</small>'+
+  [1,2,3].map(function(n){return '<div class="pl"><span style="color:var(--txt)">Niveau '+n+'</span><span><input class="in" id="p'+n+'" type="number" min="0" max="100" value="'+CONFIG["p"+n]+'" style="width:80px;margin:0"> %</span></div>'}).join("")+
+  '<button class="ok" id="sp" style="margin-top:8px">Enregistrer</button></div>'+
+  '<div class="fiche"><b>Retrait</b><small style="display:block;margin-bottom:6px">Frais, montant minimum et heures d’ouverture (0 = aucun minimum)</small>'+
+  '<div class="pl"><span style="color:var(--txt)">Frais (% du retrait)</span><span><input class="in" id="pr" type="number" min="0" max="100" step="0.5" value="'+CONFIG.pr+'" style="width:80px;margin:0"> %</span></div>'+
+  '<div class="pl"><span style="color:var(--txt)">Retrait minimum</span><span><input class="in" id="mr" type="number" inputmode="numeric" min="0" value="'+CONFIG.minRet+'" style="width:100px;margin:0"> F</span></div>'+
+  '<div class="pl"><span style="color:var(--txt)">Ouvert de</span><span><input class="in" id="hd" type="number" inputmode="numeric" min="0" max="23" value="'+CONFIG.hd+'" style="width:64px;margin:0"> h à <input class="in" id="hf" type="number" inputmode="numeric" min="1" max="24" value="'+CONFIG.hf+'" style="width:64px;margin:0"> h</span></div>'+
+  '<button class="ok" id="sr" style="margin-top:8px">Enregistrer</button></div>'+
+  '<div class="fiche"><b>Recharge</b><small style="display:block;margin-bottom:6px">Lien de paiement ouvert par le bouton « Demande le rechargement »</small><input class="in" id="lk" type="url" inputmode="url" placeholder="https://…" value="'+esc(CONFIG.lien)+'">'+
+  '<div class="pl"><span style="color:var(--txt)">Dépôt minimum</span><span><input class="in" id="md" type="number" inputmode="numeric" min="0" value="'+CONFIG.minDep+'" style="width:100px;margin:0"> F</span></div><button class="ok" id="sl">Enregistrer</button></div>'}
+function rendre(){
+ if(!estAdmin()){$("vue").innerHTML=RETOUR+'<p class="vide">Accès réservé à l’administrateur.</p>';return}
+ $("vue").innerHTML=RETOUR+'<div class="sec"><h2>'+({accueil:"Tableau de bord",demandes:"Dépôts et retraits",comptes:"Comptes",events:"Évènements",prono:"Pronostic du jour",regl:"Réglages"}[onglet]||"Administration")+'</h2></div>'+
+    (onglet==="accueil"?accueil():onglet==="demandes"?demandesTab():onglet==="comptes"?comptesTab():onglet==="prono"?adminProno():onglet==="events"?evenementsTab():reglages())}
+function gererCompte(a){
+ var act=a.dataset.a,id=a.dataset.u,c=comptes.filter(function(x){return x.id===id})[0];
+ if(!c||estAdm(c))return;
+ if(act==="add"||act==="sub"){
+  var m=Math.floor(+($("am"+id).value||0));
+  if(!(m>0)){toast("Entre un montant supérieur à 0.");return}
+  if(act==="sub"&&m>(c.solde||0)){toast("Solde insuffisant : "+fm(c.solde)+" F.");return}
+  var v=act==="add"?m:-m;crediter(id,v);c.dernier={m:v,date:new Date().toLocaleDateString("fr-FR")};ecrire("comptes",comptes);
+  rendre();toast(act==="add"?fm(m)+" F ajoutés au compte.":fm(m)+" F retirés du compte.");return}
+ if(act==="blk"){c.bloque=!c.bloque;ecrire("comptes",comptes);rendre();toast(c.bloque?"Compte bloqué.":"Compte débloqué.");return}
+ if(act==="del"){sup=id;rendre();return}
+ if(act==="delno"){sup="";rendre();return}
+ if(act==="delok"){
+  demandes.forEach(function(x){if(x.uid===id&&x.st==="attente")x.st="refuse"});ecrire("demandes",demandes);
+  comptes=comptes.filter(function(x){return x.id!==id});ecrire("comptes",comptes);sup="";rendre();toast("Compte supprimé.")}}
+$("vue").onclick=function(ev){
+ if(!estAdmin())return;
+ var t=ev.target,o=t.closest("[data-ot]");
+ if(o){onglet=o.dataset.ot;sup="";rendre();return}
+ var f=t.closest("[data-ft]");if(f){ft=f.dataset.ft;rendre();return}
+ f=t.closest("[data-fs]");if(f){fs=f.dataset.fs;rendre();return}
+ var ac=t.closest("[data-a]");if(ac){gererCompte(ac);return}
+ if(gererEvent(t))return;
+ if(gererProno(ev))return;
+ var b=t.closest("[data-v]");
+ if(b){var x=demandes.filter(function(q){return q.id===b.dataset.d})[0];
+  if(x&&x.st==="attente"){
+   if(b.dataset.v==="valide"&&!comptes.some(function(c){return c.id===x.uid})){toast("Compte introuvable.");return}
+   if(x.type==="retrait"&&b.dataset.v==="valide"){var cs=(comptes.filter(function(c){return c.id===x.uid})[0]||sess||{}).solde||0;if(cs<x.montant){toast("Solde insuffisant pour ce retrait.");return}}
+   x.st=b.dataset.v;var bt=0;if(x.st==="valide"){crediter(x.uid,x.type==="retrait"?-x.montant:x.montant);if(x.type!=="retrait")bt=distribuerBonus(x)}
+   ecrire("demandes",demandes);rendre();toast(x.st!=="valide"?"Demande refusée.":x.type==="retrait"?"Retrait validé, solde débité.":bt?"Recharge validée. Bonus de parrainage distribués : "+bt+" F.":"Recharge validée, solde crédité.")}return}
+ if(t.closest("#sp")){CONFIG.p1=+$("p1").value||0;CONFIG.p2=+$("p2").value||0;CONFIG.p3=+$("p3").value||0;ecrire("config",CONFIG);toast("Pourcentages enregistrés.")}
+ if(t.closest("#sr")){
+  var hd=Math.floor(+$("hd").value),hf=Math.floor(+$("hf").value);
+  if(!(hd>=0&&hf<=24&&hd<hf)){toast("Heures invalides : l’ouverture doit être avant la fermeture (de 0 à 24).");return}
+  CONFIG.pr=Math.min(100,Math.max(0,+$("pr").value||0));CONFIG.minRet=Math.max(0,Math.floor(+$("mr").value||0));CONFIG.hd=hd;CONFIG.hf=hf;
+  ecrire("config",CONFIG);toast("Réglages du retrait enregistrés.")}
+ if(t.closest("#sl")){var lk=$("lk").value.trim();if(lk&&!/^https?:\/\//i.test(lk)){toast("Le lien doit commencer par https://");return}CONFIG.lien=lk;CONFIG.minDep=Math.max(0,Math.floor(+$("md").value||0));ecrire("config",CONFIG);toast("Réglages de la recharge enregistrés.")}};
+$("vue").oninput=function(ev){if(ev.target.id==="cq"){rq=ev.target.value;$("lc").innerHTML=listeComptes()}};
+rendre();
+</script>
+</body>
+</html>

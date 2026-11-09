@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Recharge</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("menu");
+function rendre(){
+ var s=sess||{},mes=demandes.filter(function(x){return x.uid===s.id&&x.type!=="retrait"});
+ $("vue").innerHTML=RETOUR+'<div class="sec"><h2>Demande de <span class="j">recharge</span></h2></div>'+
+ '<div class="fiche"><small>Solde actuel</small><div class="j" style="font-size:26px;font-weight:800">'+solde+' F</div></div>'+
+ '<div class="fiche"><b>1. Effectue ton paiement</b><p class="leg" style="margin:6px 0 10px">Clique sur le bouton, effectue le paiement, puis reviens remplir le formulaire avec ta preuve.</p><button class="ok" id="lien">Demande le rechargement</button></div>'+
+ '<div class="sec" style="margin-top:6px"><h2>2. Ta demande</h2></div>'+
+ '<input class="in" id="rm" type="number" inputmode="numeric" min="1" placeholder="Montant à recharger (F)">'+
+ (CONFIG.minDep>0?'<p class="leg" style="margin:-2px 0 8px">Dépôt minimum : '+CONFIG.minDep+' F</p>':'')+
+ '<input class="in" id="rr" list="rl" placeholder="Réseau (ex. Orange, MTN, Moov, Wave)" autocomplete="off"><datalist id="rl"><option value="Orange Money"><option value="MTN MoMo"><option value="Moov Money"><option value="Wave"></datalist>'+
+ '<input class="in" id="rt" type="tel" placeholder="Numéro" value="'+esc(s.tel)+'">'+
+ '<input class="in" id="rn" placeholder="Nom" value="'+esc(s.nom)+'">'+
+ '<input class="in" id="rp" placeholder="Prénom" value="'+esc(s.prenom)+'">'+
+ '<textarea class="in" id="rv" rows="4" maxlength="500" placeholder="Preuve de paiement : colle ici le message de confirmation ou la référence de la transaction"></textarea>'+
+ '<button class="ok" id="env">Envoyer la demande</button>'+
+ '<div class="sec"><h2>Mes demandes</h2></div>'+(mes.length?mes.map(function(x){return carteDemande(x)}).join(""):'<p class="vide">Aucune demande pour le moment.</p>')}
+$("vue").onclick=function(ev){
+ if(ev.target.closest("#lien")){if(!CONFIG.lien){toast("Le lien de paiement n’est pas encore disponible.");return}window.open(CONFIG.lien,"_blank","noopener");return}
+ if(!ev.target.closest("#env"))return;
+ var m=+$("rm").value,r=$("rr").value.trim(),t=$("rt").value.trim(),n=$("rn").value.trim(),p=$("rp").value.trim(),v=$("rv").value.trim();
+ if(!(m>0)||!r||!t||!n||!p){toast("Remplis le montant, le réseau, le numéro, le nom et le prénom.");return}
+ if(CONFIG.minDep>0&&m<CONFIG.minDep){toast("Dépôt minimum : "+CONFIG.minDep+" F.");return}
+ if(!v){toast("Écris ta preuve de paiement en bas du formulaire.");return}
+ demandes.unshift({type:"recharge",id:"D"+Math.floor(100000+Math.random()*900000),uid:sess.id,pseudo:sess.pseudo,montant:m,reseau:r,preuve:v,tel:t,nom:n,prenom:p,date:new Date().toLocaleDateString("fr-FR"),st:"attente"});
+ ecrire("demandes",demandes);toast("Demande envoyée. L’administrateur va la vérifier.");rendre()};
+rendre();
+</script>
+</body>
+</html>

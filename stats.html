@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Statistiques</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("index");
+var SID=+((location.search.match(/id=(\d+)/)||[])[1])||(typeof MID!=="undefined"?MID:1);
+var m=find(SID)||{a:"Équipe 1",b:"Équipe 2",l:"",id:0},on="res",pe="match";
+var S=[["Possession (%)",54,46],["Tirs",14,9],["Tirs cadrés",6,3],["Tirs non cadrés",8,6],["Corners",6,4],["Fautes",11,13],["Hors-jeu",2,3],["Cartons jaunes",1,2],["Cartons rouges",0,0],["Arrêts du gardien",3,5],["Passes",412,356],["Attaques dangereuses",38,27]];
+var H=[["12.03.2026",2,1],["05.11.2025",0,0],["19.04.2025",1,3],["02.12.2024",2,2],["11.08.2024",1,0]];
+function v(s,k){
+ if(pe==="match")return s[k+1];
+ if(s[0].indexOf("Possession")===0)return (pe==="h1"?[52,48]:[56,44])[k];
+ var a=Math.round(s[k+1]*0.45);return pe==="h1"?a:s[k+1]-a}
+function ligneStat(s){
+ var l=v(s,0),r=v(s,1),t=(l+r)||1;
+ return '<div class="sr"><div class="sv"><b>'+l+'</b><span>'+s[0]+'</span><b>'+r+'</b></div><div class="bars"><div class="half" style="justify-content:flex-end"><i class="fl" style="width:'+(l/t*100)+'%"></i></div><div class="half"><i class="fr" style="width:'+(r/t*100)+'%"></i></div></div></div>'}
+function chips(l,key,cur,att){return '<div class="chips">'+l.map(function(x){return '<button class="chip" '+att+'="'+x[0]+'" aria-pressed="'+(cur===x[0])+'">'+x[1]+'</button>'}).join("")+'</div>'}
+function rendre(){
+ var h='<div class="ban"><div style="display:flex;align-items:center;gap:10px"><a href="match.html?id='+m.id+'" data-p="match" data-id="'+m.id+'" class="tout" style="text-decoration:none;color:inherit">←</a><b style="flex:1;text-align:center;font-size:18px">Statistiques</b></div>'+
+ '<p class="cd" style="margin:8px 0 0">Football. '+m.l+'</p>'+
+ '<div class="vs" style="margin:14px 0 4px"><div class="eq" style="flex-direction:column;text-align:center">'+lg(m.a,m.ca,m.la)+'<span>'+m.a+'</span></div><div class="j" style="font-size:30px;font-weight:800">1 : 0</div><div class="eq" style="flex-direction:column;text-align:center">'+lg(m.b,m.cb,m.lb)+'<span>'+m.b+'</span></div></div></div>'+
+ chips([["res","Résumé du match"],["h2h","H2H"],["cla","Classements"]],"on",on,"data-t");
+ if(on==="res")h+='<div class="fiche"><b>Statistiques de match</b>'+chips([["match","Match"],["h1","1ère mi-temps"],["h2","2ème mi-temps"]],"pe",pe,"data-pe")+S.map(ligneStat).join("")+'</div>';
+ else if(on==="h2h")h+='<div class="fiche"><b>Dernières rencontres</b>'+H.map(function(x){return '<div class="ligne"><span>'+x[0]+'</span><b>'+m.a+' '+x[1]+' – '+x[2]+' '+m.b+'</b></div>'}).join("")+'</div>';
+ else{var T=[[m.a,31],["AS Centre",29],[m.b,27],["Union Sud",24],["FC Nord",20]];h+='<div class="fiche"><b>Classement</b>'+T.map(function(x,i){return '<div class="ligne"><span>'+(i+1)+'. '+x[0]+'</span><b class="j">'+x[1]+' pts</b></div>'}).join("")+'</div>'}
+ $("vue").innerHTML=h}
+$("vue").onclick=function(ev){
+ var a=ev.target.closest("[data-t]"),b=ev.target.closest("[data-pe]");
+ if(a){on=a.dataset.t;rendre()}
+ if(b){pe=b.dataset.pe;rendre()}};
+rendre();
+</script>
+</body>
+</html>

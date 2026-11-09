@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Menu</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("menu");
+function it(h,p,t,s){return '<a class="dir" href="'+h+'" data-p="'+p+'" style="text-decoration:none;color:inherit"><span class="nom">'+t+'<br><small style="color:var(--mute);font-weight:400">'+s+'</small></span><span>›</span></a>'}
+$("vue").innerHTML='<div class="sec"><h2>Menu</h2></div>'+
+ it("profil.html","profil","Mon profil","Compte et informations personnelles")+
+ it("recharge.html","recharge","Demande de recharge","Créditer mon solde")+
+ it("retrait.html","retrait","Demande de retrait","Retirer de mon solde")+
+ it("bonus.html","bonus","Mes bonus","Consulter mes bonus")+
+ it("parrainage.html","parrainage","Mon arbre de parrainage","Niveaux 1, 2 et 3")+
+ '<button class="dir" data-thm style="width:100%;text-align:left"><span class="lg" style="background:var(--bg3);color:var(--txt);width:44px;height:44px"><span class="ti">'+iconeTheme()+'</span></span><span class="nom tl">'+(theme()==="dark"?"Passer en mode clair":"Passer en mode sombre")+'</span></button>'+
+ '<button class="dir" id="deco" style="width:100%;text-align:left"><span class="nom r">Se déconnecter</span></button>';
+$("vue").onclick=function(ev){if(ev.target.closest("#deco")){sess=null;ecrire("sess",null);location.href="connexion.html"}};
+</script>
+</body>
+</html>

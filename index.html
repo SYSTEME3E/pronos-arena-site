@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Accueil</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w" id="top"></div>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("index");$("top").innerHTML=entete();
+function rendre(){
+ var av=avant(),dr=direct();
+ $("vue").innerHTML=pronoHtml()+'<div class="sec"><h2>Avant-<span class="b">match</span></h2></div>'+
+ (av.length?'<div class="rail">'+av.map(carte).join("")+'</div>':'<p class="vide" style="padding:24px 0">Aucun évènement pour le moment.<br>Entre un code dans l’onglet Ticket pour en ajouter.</p>')+
+ (dr.length?'<div class="sec"><h2>Matchs <span class="r">EN DIRECT</span></h2></div>'+dr.map(function(m){return '<a class="dir" href="match.html?id='+m.id+'" style="text-decoration:none;color:inherit"><span class="lg" style="background:'+(m.ca||couleur(m.a))+'"></span><span class="nom">'+esc(m.a)+' – '+esc(m.b)+'<br><small style="color:var(--mute);font-weight:400">'+esc(m.l)+'</small></span><span class="live">●</span></a>'}).join(""):"");
+ tic()}
+rendre();
+</script>
+</body>
+</html>

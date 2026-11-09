@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pronos Arena – Ticket</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="w" id="vue"></main>
+<nav class="bas" aria-label="Navigation principale"><div id="nb"></div></nav>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+nav("ticket");
+var sous="";
+function opt(k,ic,bg,t,s){return '<button class="dir" data-o="'+k+'" style="width:100%;text-align:left"><span class="lg" style="background:'+bg+';width:44px;height:44px;font-size:18px">'+ic+'</span><span class="nom">'+t+'<br><small style="color:var(--mute);font-weight:400">'+s+'</small></span></button>'}
+function ligne(m,e){return '<div class="ligne"><span>'+esc(m.a)+' – '+esc(m.b)+' ('+esc(e.lb)+')</span><b class="j">'+(+e.q).toFixed(2)+'</b></div>'}
+function resultats(q){q=q.toLowerCase();var l=mesTickets().filter(function(t){return (t.id+" "+t.sel.map(function(s){return s.a+" "+s.b}).join(" ")).toLowerCase().indexOf(q)>-1});
+ return l.length?l.map(function(t){return carteTicket(t)}).join(""):'<p class="vide" style="padding:8px 0">Aucun ticket trouvé.</p>'}
+function rendre(){
+ var ids=Object.keys(coupon),h='<div class="sec"><h2>Mon <span class="j">ticket</span></h2></div>';
+ if(!ids.length)h+='<div class="vide" style="padding:8px 0 18px"><b style="color:var(--txt)">Ton ticket est vide</b><br>Ajoute un match ou choisis une option ci-dessous.</div>';
+ else{var t=1;h+=ids.map(function(id){var m=find(id),e=coupon[id];t*=e.q;return ligne(m,e)}).join("")+
+  '<div class="ligne"><span>Cote totale</span><b class="j">'+t.toFixed(2)+'</b></div><div class="mise"><input id="mi" type="number" inputmode="numeric" placeholder="Mise en F" min="1"></div><div id="gp" class="ligne" style="border:0"><span>Gain possible</span><b class="j">–</b></div><div style="display:flex;gap:8px;margin-bottom:16px"><button class="ok" id="ok">Valider le pari</button><button class="tout" id="vd">Vider</button></div>'}
+ h+=opt("alim","+","var(--vert)","Alimenter mon solde","Solde : "+solde+" F");
+ h+=opt("rech","⌕","var(--bg3)","Retrouver mes tickets","Uniquement les tiens");
+ if(sous==="rech")h+='<div style="margin:0 0 8px"><input class="in" id="rq" placeholder="Équipe ou numéro de ticket"><div id="res">'+resultats("")+'</div></div>';
+ h+=opt("comb","★","var(--bg3)","Combiné du jour","Composé automatiquement chaque jour");
+ if(sous==="comb"){var cb=combine(),tt=1;
+  h+='<div style="margin:0 0 8px">'+(cb.length?cb.map(function(x){tt*=x.q;return ligne(x.m,x)}).join("")+'<div class="ligne"><span>Cote totale</span><b class="j">'+tt.toFixed(2)+'</b></div><button class="ok" id="ajc" style="margin-top:10px">Ajouter à mon ticket</button>':'<p class="vide" style="padding:12px 0">Aucun match dans les prochaines 24 heures.</p>')+'</div>'}
+ h+=opt("code","⇪","var(--bg3)","Entrer un code","Charge un événement partagé");
+ if(sous==="code"){var ch=evcodes.map(find).filter(ouvert);
+  h+='<div style="margin:0 0 8px"><input class="in" id="cdi" placeholder="Code de l’événement" autocapitalize="characters"><button class="ok" id="cg">Charger</button>'+(ch.length?'<div style="margin-top:10px">'+ch.map(carte).join("")+'</div>':'')+'</div>'}
+ $("vue").innerHTML=h;tic()}
+function majGain(){var e=$("gp"),i=$("mi");if(!e||!i)return;var t=1;Object.keys(coupon).forEach(function(k){t*=coupon[k].q});var m=+i.value||0;e.lastChild.textContent=m>0?Math.round(m*t)+" F":"–"}
+$("vue").addEventListener("click",function(ev){
+ var o=ev.target.closest("[data-o]"),b=ev.target.closest("button"),id=b?b.id:"";
+ if(o){var k=o.dataset.o;if(k==="alim"){location.href="recharge.html";return}sous=sous===k?"":k;rendre();return}
+ if(id==="ok"){var mise=Math.floor(+($("mi").value||0));if(!(mise>0)){toast("Entre ta mise en F.");return}
+  var perdus=Object.keys(coupon).filter(function(i){return !ouvert(find(i))});
+  if(perdus.length){perdus.forEach(function(i){delete coupon[i]});ecrire("coupon",coupon);badge();toast("Un match a commencé : il a été retiré de ton ticket.");rendre();return}
+  if(mise>solde){toast("Solde insuffisant. Fais une demande de recharge.");return}
+  var cote=1,sel=Object.keys(coupon).map(function(i){var m=find(i),c=coupon[i];cote*=c.q;return {eid:m.id,k:c.k,a:m.a,b:m.b,lb:c.lb,q:c.q,r:null}});
+  hist.unshift({id:"T"+Math.floor(100000+Math.random()*900000),uid:sess.id,ts:Date.now(),date:new Date().toLocaleDateString("fr-FR"),sel:sel,mise:mise,cote:cote,st:"cours"});
+  solde-=mise;sess.solde=solde;sauver();ecrire("hist",hist);coupon={};ecrire("coupon",coupon);badge();toast("Pari enregistré. Retrouve-le dans Historique.");rendre()}
+ if(id==="vd"){coupon={};ecrire("coupon",coupon);badge();rendre()}
+ if(id==="cg"){var c=($("cdi").value||"").trim().toUpperCase(),m=EV.filter(function(x){return x.code===c&&x.st==="ouvert"})[0];
+  if(!m){toast("Code introuvable.");return}
+  if(!ouvert(m)){toast("Cet évènement a déjà commencé.");return}
+  if(evcodes.indexOf(m.id)<0){evcodes.push(m.id);ecrire("evcodes",evcodes)}toast("Évènement ajouté.");rendre()}
+ if(id==="ajc"){coupon={};combine().forEach(function(x){coupon[x.m.id]={k:x.k,lb:x.lb,q:x.q}});ecrire("coupon",coupon);badge();sous="";rendre()}
+});
+$("vue").oninput=function(ev){if(ev.target.id==="rq")$("res").innerHTML=resultats(ev.target.value);if(ev.target.id==="mi")majGain()};
+rendre();
+</script>
+</body>
+</html>
