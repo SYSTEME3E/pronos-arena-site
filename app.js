@@ -1,5 +1,10 @@
 function lire(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
-function ecrire(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+// Le navigateur ne garde que le strict nécessaire : connexion, thème, favoris, ticket en cours et message flash.
+// Soldes, tickets, comptes, demandes… viennent toujours de Supabase et ne sont plus stockés dans le navigateur.
+var GARDE=["sbauth","theme","favs","coupon","flash"];
+function ecrire(k,v){if(GARDE.indexOf(k)<0)return;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+// Efface ce que les anciennes versions avaient enregistré (faux compte admin, soldes, comptes, demandes…).
+(function(){try{Object.keys(localStorage).forEach(function(k){if(GARDE.indexOf(k)<0)localStorage.removeItem(k)})}catch(e){}})();
 var coupon=lire("coupon",{}),favs=lire("favs",{}),hist=lire("hist",[]),sess=lire("sess",null),comptes=lire("comptes",[]),demandes=lire("demandes",[]),bons=lire("bons",[]),pronostic=lire("pronostic",null),parts=lire("parts",[]),EV=lire("events",[]),evcodes=lire("evcodes",[]),CONFIG=lire("config",{p1:10,p2:5,p3:2,pr:5,lien:"",minDep:0,minRet:0,hd:10,hf:18}),solde=0;
 if(CONFIG.pr===undefined)CONFIG.pr=5;if(CONFIG.lien===undefined)CONFIG.lien="";if(CONFIG.minDep===undefined)CONFIG.minDep=0;if(CONFIG.minRet===undefined)CONFIG.minRet=0;if(CONFIG.hd===undefined)CONFIG.hd=10;if(CONFIG.hf===undefined)CONFIG.hf=18;
 solde=(sess||{}).solde||0;
