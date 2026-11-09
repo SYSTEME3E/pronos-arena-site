@@ -17,6 +17,10 @@ gardeAdmin();
 
 var $=function(i){return document.getElementById(i)};
 function pad(n){return String(n).padStart(2,"0")}
+// Les cotes s’affichent en % : 2.5 devient « 2,5 % » (le calcul des gains ne change pas).
+function fc(q){return String(+(+q).toFixed(2)).replace(".",",")+" %"}
+// Logos : uniquement des images hébergées par api-sports (même règle que côté serveur).
+function logoSur(u){return typeof u==="string"&&/^https:\/\/media[a-z0-9.-]*\.api-sports\.io\/[A-Za-z0-9\/_.-]+$/.test(u)?u:""}
 function ini(t){return t.split(" ").map(function(x){return x[0]}).join("").slice(0,2).toUpperCase()}
 function toast(m){var t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(function(){t.style.display="none"},2200)}
 function find(id){return EV.filter(function(m){return m.id==id})[0]}
@@ -56,7 +60,7 @@ function carte(m){
  '<div class="cd"><span data-cd="'+m.id+'"></span><p>'+(ouvert(m)?"Paris d’avant-match":"Match en cours")+'</p></div><div class="t12">1X2</div><div class="cotes">';
  [["1","V1"],["X","X"],["2","V2"]].forEach(function(x){
   var on=coupon[m.id]&&coupon[m.id].k===x[0];
-  h+='<button class="cote" data-m="'+m.id+'" data-k="'+x[0]+'" data-lb="'+x[1]+'" data-q="'+m.q[x[0]]+'" aria-pressed="'+!!on+'"><span>'+x[1]+'</span><b>'+(+m.q[x[0]]).toFixed(2)+'</b></button>'});
+  h+='<button class="cote" data-m="'+m.id+'" data-k="'+x[0]+'" data-lb="'+x[1]+'" data-q="'+m.q[x[0]]+'" aria-pressed="'+!!on+'"><span>'+x[1]+'</span><b>'+fc(m.q[x[0]])+'</b></button>'});
  return h+'</div></div>'}
 
 function fmtCd(s){var j=Math.floor(s/86400);s%=86400;return (j?'<b>'+j+'j</b>':'')+'<b>'+pad(Math.floor(s/3600))+'</b>:<b>'+pad(Math.floor(s%3600/60))+'</b>:<b>'+pad(s%60)+'</b>'}
@@ -111,7 +115,7 @@ function carteTicket(t){
  var etat=t.st==="cours"?'<b class="j">● En cours</b>':t.st==="gagne"?'<b class="v">Gagné</b>':t.st==="rembourse"?'<b class="b">Remboursé</b>':t.st==="annule"?'<b class="b">Annulé</b>':'<b class="r">Perdu</b>';
  var sr=function(s){return s.r===true?' <b class="v">✓</b>':s.r===false?' <b class="r">✗</b>':s.r==="annule"?' <small>(annulé)</small>':''};
  return '<article class="match"><div class="meta"><span>Ticket '+t.id+' – '+t.date+'</span>'+etat+'</div>'+
- t.sel.map(function(s){return '<div class="ligne"><span>'+esc(s.a)+' – '+esc(s.b)+' ('+esc(s.lb)+')'+(t.pp?'':sr(s))+'</span><b class="j">'+s.q.toFixed(2)+'</b></div>'}).join("")+
+ t.sel.map(function(s){return '<div class="ligne"><span>'+esc(s.a)+' – '+esc(s.b)+' ('+esc(s.lb)+')'+(t.pp?'':sr(s))+'</span><b class="j">'+fc(s.q)+'</b></div>'}).join("")+
  '<div class="ligne"><span>Mise</span><b>'+t.mise+' F</b></div>'+
  (t.st==="perdu"||t.st==="rembourse"||t.st==="annule"?'':'<div class="ligne"><span>'+(t.st==="gagne"?"Gain":"Gain possible")+'</span><b class="j">'+gainT(t)+' F</b></div>')+(peutAnnuler(t)?'<button class="tout" style="margin-top:10px" data-an="'+t.id+'">Annuler ma mise</button>':'')+'</article>'}
 // Une mise peut être annulée tant qu’aucun des matchs du ticket n’a commencé.
@@ -157,7 +161,7 @@ function pronoHtml(){
  var h='<div class="fiche" style="border-color:var(--jaune)"><div style="display:flex;justify-content:space-between"><b class="j">Pronostic du jour</b><span class="cd">'+(p.st==="clos"?"Terminé":"Ouvert")+'</span></div>'+
  '<div style="font-weight:800;margin:8px 0 2px">'+esc(p.a)+' – '+esc(p.b)+'</div>'+
  '<div class="j" style="font-size:28px;font-weight:800">'+esc(p.score.replace("-"," : "))+'</div>'+
- '<p class="leg" style="margin:6px 0 10px">Si le score final est différent de ce pronostic, tu gagnes (cote '+p.cote.toFixed(2)+'). S’il est exactement celui-ci, tu perds ta mise.</p>';
+ '<p class="leg" style="margin:6px 0 10px">Si le score final est différent de ce pronostic, tu gagnes (cote '+fc(p.cote)+'). S’il est exactement celui-ci, tu perds ta mise.</p>';
  if(p.st==="clos"){
   h+='<div class="ligne"><span>Score final</span><b>'+esc(p.final.replace("-"," : "))+'</b></div>';
   if(mine)h+='<div class="ligne"><span>Ta participation ('+mine.mise+' F)</span><b>'+{cours:"En cours",gagne:"Gagné",perdu:"Perdu",rembourse:"Remboursé",annule:"Annulé"}[mine.st]+'</b></div>'}
@@ -227,7 +231,7 @@ function evBase(r){
  if(r.q_bo&&r.q_bn){q.bo=+r.q_bo;q.bn=+r.q_bn}
  if(r.q_po&&r.q_pu){q.po=+r.q_po;q.pu=+r.q_pu}
  return {id:r.id,code:r.code,l:r.competition||"",a:r.equipe1,b:r.equipe2,start:Date.parse(r.debut),q:q,pub:!!r.publie,st:r.statut,
-  res:(r.score1!=null&&r.score2!=null)?r.score1+"-"+r.score2:null}}
+  res:(r.score1!=null&&r.score2!=null)?r.score1+"-"+r.score2:null,la:logoSur(r.logo1),lb:logoSur(r.logo2)}}
 function dfr(t){return new Date(t).toLocaleDateString("fr-FR")}
 function gainT(t){return t.st==="gagne"&&t.gain>0?t.gain:Math.round(t.mise*t.cote)}
 function arbre(){var n=[[],[],[]];(ARBRE||[]).forEach(function(x){if(n[x.niveau-1])n[x.niveau-1].push({id:x.user_id,pseudo:x.pseudo,rapporte:+x.rapporte||0})});return n}
@@ -240,7 +244,7 @@ function chargerCoeur(){
  return Promise.all([
   ess("profiles?select=*&id=eq."+uid),
   ess("reglages?select=*&id=eq.1"),
-  ess("evenements?select=id,code,competition,equipe1,equipe2,debut,q1,qx,q2,q_bo,q_bn,q_po,q_pu,publie,statut,score1,score2&debut=gte."+encodeURIComponent(depuis)+"&order=debut.asc&limit=500"),
+  ess("evenements?select=id,code,competition,equipe1,equipe2,debut,q1,qx,q2,q_bo,q_bn,q_po,q_pu,publie,statut,score1,score2,logo1,logo2&debut=gte."+encodeURIComponent(depuis)+"&order=debut.asc&limit=500"),
   ess("evenements_charges?select=evenement_id"),
   ess("tickets?select=id,user_id,mise,cote,statut,gain,created_at,regle_le,ticket_selections(evenement_id,equipe1,equipe2,choix,libelle,cote,resultat)&order=created_at.desc&limit=500"),
   ess("participations?select=id,pronostic_id,user_id,mise,cote,statut,created_at,pronostics(equipe1,equipe2,score1,score2)&order=created_at.desc&limit=500"),
