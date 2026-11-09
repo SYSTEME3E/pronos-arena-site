@@ -201,11 +201,16 @@ function seConnecter(ident,pw){
 function creerCompte(d){
  var pseudo=d.pseudo.trim();
  if(!/^[A-Za-z0-9_.-]{3,20}$/.test(pseudo))return Promise.reject(new Error("Nom d’utilisateur : 3 à 20 caractères (lettres, chiffres, _ . -)."));
- return rpc("email_connexion",{p_identifiant:pseudo},true).then(function(pris){
-  if(pris)throw new Error("Ce nom d’utilisateur est déjà pris.");
+ if(d.tel.replace(/\D/g,"").length<8||d.tel.replace(/\D/g,"").length>15)return Promise.reject(new Error("Numéro de téléphone invalide."));
+ if(d.email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email))return Promise.reject(new Error("Adresse e-mail invalide."));
+ // Un nom d’utilisateur, un numéro et une adresse e-mail ne peuvent servir qu’à un seul compte (la base le garantit aussi).
+ return rpc("verifier_inscription",{p_pseudo:pseudo,p_tel:d.tel,p_email:d.email||null},true).then(function(pris){
+  if(pris==="pseudo")throw new Error("Ce nom d’utilisateur est déjà pris.");
+  if(pris==="tel")throw new Error("Ce numéro de téléphone est déjà utilisé.");
+  if(pris==="email")throw new Error("Cette adresse e-mail est déjà utilisée.");
   return fetch(SB_URL+"/auth/v1/signup",{method:"POST",headers:enteteSb(),body:JSON.stringify({email:pseudo.toLowerCase()+"@pronosarena.app",password:d.pw,
    data:{pseudo:pseudo,tel:d.tel,email_contact:d.email,prenom:"",nom:"",parrain_code:d.parrain}})})}).then(function(r){
-    if(!r.ok)throw new Error("Inscription impossible : code de parrainage introuvable ou nom réservé.");
+    if(!r.ok)throw new Error("Inscription impossible : vérifie le code de parrainage et tes informations (nom, numéro ou e-mail déjà utilisés).");
     return seConnecter(pseudo,d.pw)})}
 function changerMdp(){
  var n=prompt("Nouveau mot de passe (8 caractères minimum) :");if(n===null)return;
