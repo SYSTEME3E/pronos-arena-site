@@ -37,8 +37,7 @@ $("vue").onclick=function(ev){
  if(!(m>0)||!r||!t||!n||!p){toast("Remplis le montant, le réseau, le numéro, le nom et le prénom.");return}
  if(CONFIG.minDep>0&&m<CONFIG.minDep){toast("Dépôt minimum : "+CONFIG.minDep+" F.");return}
  if(!v){toast("Écris ta preuve de paiement en bas du formulaire.");return}
- demandes.unshift({type:"recharge",id:"D"+Math.floor(100000+Math.random()*900000),uid:sess.id,pseudo:sess.pseudo,montant:m,reseau:r,preuve:v,tel:t,nom:n,prenom:p,date:new Date().toLocaleDateString("fr-FR"),st:"attente"});
- ecrire("demandes",demandes);toast("Demande envoyée. L’administrateur va la vérifier.");rendre()};
+ agir(function(){return rpc("demander_recharge",{p_montant:m,p_reseau:r,p_tel:t,p_nom:n,p_prenom:p,p_preuve:v})},"Demande envoyée. L’administrateur va la vérifier.")};
 rendre();
 </script>
 </body>
