@@ -1,7 +1,7 @@
 function lire(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 // Le navigateur ne garde que le strict nécessaire : connexion, thème, favoris, ticket en cours et message flash.
 // Soldes, tickets, comptes, demandes… viennent toujours de Supabase et ne sont plus stockés dans le navigateur.
-var GARDE=["sbauth","theme","favs","coupon","flash"];
+var GARDE=["sbauth","favs","coupon","flash"];
 function ecrire(k,v){if(GARDE.indexOf(k)<0)return;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 // Efface ce que les anciennes versions avaient enregistré (faux compte admin, soldes, comptes, demandes…).
 (function(){try{Object.keys(localStorage).forEach(function(k){if(GARDE.indexOf(k)<0)localStorage.removeItem(k)})}catch(e){}})();
@@ -73,7 +73,7 @@ setInterval(tic,1000);
 function entete(){
  return '<div class="prof"><div class="av"><svg width="28" height="28" viewBox="0 0 24 24" fill="#8f9bc4"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></svg></div>'+
  '<div class="who"><b>'+(sess?sess.pseudo:"Joueur")+'</b><span>Profil personnel</span></div>'+
- '<button class="ic" data-thm aria-label="Mode sombre ou clair"><span class="ti">'+iconeTheme()+'</span></button></div>'+
+ '</div>'+
  '<div class="bar"><div class="solde"><span>'+solde+' <span class="j">F</span></span></div><button class="dep" id="dep">+ Recharger</button></div>'+
  '<div class="stats"><div class="st"><small>Gains semaine</small><b class="j">'+gains()+'</b></div><div class="st"><small>Paris gagnés</small><b class="b">'+mesTickets().filter(function(t){return t.st==="gagne"}).length+'</b></div><div class="st"><small>Paris en cours</small><b class="r">'+mesTickets().filter(function(t){return t.st==="cours"}).length+'</b></div></div>'}
 
@@ -103,7 +103,6 @@ document.addEventListener("click",function(ev){
  if(ev.target.closest("#bg")){$("tir").classList.add("ouv");return}
  if(ev.target.closest("#tvo")||ev.target.closest("#tfe")){$("tir").classList.remove("ouv");return}
  var c=ev.target.closest(".cote"),f=ev.target.closest(".fav");
- if(ev.target.closest("[data-thm]"))basculer();
  if(ev.target.closest("#pp"))participer();
  if(ev.target.closest("#dep"))location.href="recharge.html";
  if(c){var id=+c.dataset.m,ent={k:c.dataset.k,lb:c.dataset.lb,q:+c.dataset.q},cur=coupon[id];
@@ -113,12 +112,12 @@ document.addEventListener("click",function(ev){
 
 function gains(){var d=Date.now()-6048e5;return mesTickets().filter(function(t){return t.st==="gagne"&&(t.tsr||0)>=d}).reduce(function(s,t){return s+gainT(t)},0)}
 function carteTicket(t){
- var etat=t.st==="cours"?'<b class="j">● En cours</b>':t.st==="gagne"?'<b class="v">Gagné</b>':t.st==="rembourse"?'<b class="b">Remboursé</b>':t.st==="annule"?'<b class="b">Annulé</b>':'<b class="r">Perdu</b>';
+ var etat=t.st==="cours"?'<b class="r">● En cours</b>':t.st==="gagne"?'<b class="v">Gagné</b>':t.st==="rembourse"?'<b class="b">Remboursé</b>':t.st==="annule"?'<b class="b">Annulé</b>':'<b class="r">Perdu</b>';
  var sr=function(s){return s.r===true?' <b class="v">✓</b>':s.r===false?' <b class="r">✗</b>':s.r==="annule"?' <small>(annulé)</small>':''};
  return '<article class="match"><div class="meta"><span>Ticket '+t.id+' – '+t.date+'</span>'+etat+'</div>'+
  t.sel.map(function(s){return '<div class="ligne"><span>'+esc(s.a)+' – '+esc(s.b)+' ('+esc(s.lb)+')'+(t.pp?'':sr(s))+'</span><b class="j">'+fc(s.q)+'</b></div>'}).join("")+
  '<div class="ligne"><span>Mise</span><b>'+t.mise+' F</b></div>'+
- (t.st==="perdu"||t.st==="rembourse"||t.st==="annule"?'':'<div class="ligne"><span>'+(t.st==="gagne"?"Gain":"Gain possible")+'</span><b class="j">'+gainT(t)+' F</b></div>')+(peutAnnuler(t)?'<button class="tout" style="margin-top:10px" data-an="'+t.id+'">Annuler ma mise</button>':'')+'</article>'}
+ (t.st==="perdu"||t.st==="rembourse"||t.st==="annule"?'':'<div class="ligne"><span>'+(t.st==="gagne"?"Gain":"Gain possible")+'</span><b class="v">'+gainT(t)+' F</b></div>')+(peutAnnuler(t)?'<button class="tout" style="margin-top:10px" data-an="'+t.id+'">Annuler ma mise</button>':'')+'</article>'}
 // Une mise peut être annulée tant qu’aucun des matchs du ticket n’a commencé.
 function peutAnnuler(t){
  if(t.st!=="cours")return false;
@@ -145,13 +144,8 @@ function carteDemande(d,adm){
  (adm&&d.st==="attente"?'<div style="display:flex;gap:8px;margin-top:10px"><button class="ok" data-v="valide" data-d="'+esc(d.id)+'">Valider</button><button class="tout" data-v="refuse" data-d="'+esc(d.id)+'">Refuser</button></div>':'')+'</article>'}
 
 
-function theme(){return document.documentElement.getAttribute("data-theme")==="light"?"light":"dark"}
-function iconeTheme(){return theme()==="dark"?'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>':'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'}
-function basculer(){
- var n=theme()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);ecrire("theme",n);
- [].forEach.call(document.querySelectorAll("[data-thm] .ti"),function(e){e.innerHTML=iconeTheme()});
- [].forEach.call(document.querySelectorAll("[data-thm] .tl"),function(e){e.textContent=n==="dark"?"Passer en mode clair":"Passer en mode sombre"})}
-document.documentElement.setAttribute("data-theme",lire("theme","dark")==="light"?"light":"dark");
+// Le site est uniquement en mode sombre.
+document.documentElement.setAttribute("data-theme","dark");
 
 function tousTickets(){
  return mesTickets().concat(parts.filter(function(p){return sess&&p.uid===sess.id}).map(function(p){
