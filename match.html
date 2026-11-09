@@ -21,6 +21,7 @@ function opt(mk,x){
  var on=coupon[m.id]&&coupon[m.id].k===x.k,lb=mk.id==="r"?x.lb:mk.t+" : "+x.lb;
  return '<button class="cote" data-m="'+m.id+'" data-k="'+x.k+'" data-lb="'+esc(lb)+'" data-q="'+x.q+'" aria-pressed="'+!!on+'"'+(ouvert(m)?'':' disabled style="opacity:.5"')+'><span>'+x.lb+'</span><b>'+(+x.q).toFixed(2)+'</b></button>'}
 function rendre(){
+ m=find(MID0);
  if(!m){$("vue").innerHTML=RETOUR.replace("menu.html","index.html").replace("← Menu","← Accueil")+'<p class="vide">Évènement introuvable.</p>';return}
  var l=marches(m).filter(function(x){return filtre==="tous"||(filtre==="pop"&&x.pop)||(filtre==="tot"&&x.tot)});
  var quand=new Date(m.start).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"});
