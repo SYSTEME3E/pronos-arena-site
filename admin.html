@@ -15,11 +15,11 @@
 <script src="app.js"></script>
 <script>
 nav("menu");
-function estAdmin(){return sess&&sess.pseudo.toLowerCase()==="admin"}
+function estAdmin(){return sess&&pseudoAdmin(sess.pseudo)}
 var onglet=(location.search.match(/t=(\w+)/)||[])[1]||"accueil",ft="tous",fs="tous",rq="",sup="",fe="ouverts",cfm=null;
 function fm(n){return String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g," ")}
 function somme(l,f){return l.reduce(function(s,x){return s+f(x)},0)}
-function estAdm(c){return (c.pseudo||"").toLowerCase()==="admin"}
+function estAdm(c){return pseudoAdmin(c.pseudo)}
 function adminProno(){
  var p=pronostic,h='<div class="fiche"><b>Pronostic du jour</b>';
  var mine=p?parts.filter(function(x){return x.pid===p.id&&x.st!=="annule"}):[];
