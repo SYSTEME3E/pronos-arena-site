@@ -22,7 +22,6 @@ $("vue").innerHTML='<div class="sec"><h2>Menu</h2></div>'+
  it("retrait.html","retrait","Demande de retrait","Retirer de mon solde")+
  it("bonus.html","bonus","Mes bonus","Consulter mes bonus")+
  it("parrainage.html","parrainage","Mon arbre de parrainage","Niveaux 1, 2 et 3")+
- '<button class="dir" data-thm style="width:100%;text-align:left"><span class="lg" style="background:var(--bg3);color:var(--txt);width:44px;height:44px"><span class="ti">'+iconeTheme()+'</span></span><span class="nom tl">'+(theme()==="dark"?"Passer en mode clair":"Passer en mode sombre")+'</span></button>'+
  '<button class="dir" id="deco" style="width:100%;text-align:left"><span class="nom r">Se déconnecter</span></button>';
 $("vue").onclick=function(ev){if(ev.target.closest("#deco")){quitter()}};
 </script>
