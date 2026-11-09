@@ -23,19 +23,19 @@ function resultats(q){q=q.toLowerCase();var l=mesTickets().filter(function(t){re
 function rendre(){
  var ids=Object.keys(coupon),h='<div class="sec"><h2>Mon <span class="j">ticket</span></h2></div>';
  if(!ids.length)h+='<div class="vide" style="padding:8px 0 18px"><b style="color:var(--txt)">Ton ticket est vide</b><br>Ajoute un match ou choisis une option ci-dessous.</div>';
- else{var t=1;h+=ids.map(function(id){var m=find(id),e=coupon[id];t*=e.q;return ligne(m,e)}).join("")+
-  '<div class="ligne"><span>Cote totale</span><b class="j">'+fc(t)+'</b></div><div class="mise"><input id="mi" type="number" inputmode="numeric" placeholder="Mise en F" min="1"></div><div id="gp" class="ligne" style="border:0"><span>Gain possible</span><b class="j">–</b></div><div style="display:flex;gap:8px;margin-bottom:16px"><button class="ok" id="ok">Valider le pari</button><button class="tout" id="vd">Vider</button></div>'+(codePart?'<div class="fiche" style="margin:-6px 0 16px"><small>Code de ton ticket (valable jusqu’au coup d’envoi)</small><div class="j" style="font-size:26px;font-weight:800;letter-spacing:2px;margin:4px 0 8px">'+codePart+'</div><div style="display:flex;gap:8px"><button class="ok" id="sh">Partager</button><button class="tout" id="cp">Copier</button></div></div>':'<button class="tout" id="pt" style="margin:-6px 0 16px;width:100%">Partager mon ticket</button>')}
+ else{var t=1;h+=ids.map(function(id){var m=find(id),e=coupon[id];t*=1+e.q/100;return ligne(m,e)}).join("")+
+  '<div class="ligne"><span>Cote totale</span><b class="j">'+fc((t-1)*100)+'</b></div><div class="mise"><input id="mi" type="number" inputmode="numeric" placeholder="Mise en F" min="1"></div><div id="gp" class="ligne" style="border:0"><span>Gain possible</span><b class="j">–</b></div><div style="display:flex;gap:8px;margin-bottom:16px"><button class="ok" id="ok">Valider le pari</button><button class="tout" id="vd">Vider</button></div>'+(codePart?'<div class="fiche" style="margin:-6px 0 16px"><small>Code de ton ticket (valable jusqu’au coup d’envoi)</small><div class="j" style="font-size:26px;font-weight:800;letter-spacing:2px;margin:4px 0 8px">'+codePart+'</div><div style="display:flex;gap:8px"><button class="ok" id="sh">Partager</button><button class="tout" id="cp">Copier</button></div></div>':'<button class="tout" id="pt" style="margin:-6px 0 16px;width:100%">Partager mon ticket</button>')}
  h+=opt("alim","+","var(--vert)","Alimenter mon solde","Solde : "+solde+" F");
  h+=opt("rech","⌕","var(--bg3)","Retrouver mes tickets","Uniquement les tiens");
  if(sous==="rech")h+='<div style="margin:0 0 8px"><input class="in" id="rq" placeholder="Équipe ou numéro de ticket"><div id="res">'+resultats("")+'</div></div>';
  h+=opt("comb","★","var(--bg3)","Combiné du jour","Composé automatiquement chaque jour");
  if(sous==="comb"){var cb=combine(),tt=1;
-  h+='<div style="margin:0 0 8px">'+(cb.length?cb.map(function(x){tt*=x.q;return ligne(x.m,x)}).join("")+'<div class="ligne"><span>Cote totale</span><b class="j">'+fc(tt)+'</b></div><button class="ok" id="ajc" style="margin-top:10px">Ajouter à mon ticket</button>':'<p class="vide" style="padding:12px 0">Aucun match dans les prochaines 24 heures.</p>')+'</div>'}
+  h+='<div style="margin:0 0 8px">'+(cb.length?cb.map(function(x){tt*=1+x.q/100;return ligne(x.m,x)}).join("")+'<div class="ligne"><span>Cote totale</span><b class="j">'+fc((tt-1)*100)+'</b></div><button class="ok" id="ajc" style="margin-top:10px">Ajouter à mon ticket</button>':'<p class="vide" style="padding:12px 0">Aucun match dans les prochaines 24 heures.</p>')+'</div>'}
  h+=opt("code","⇪","var(--bg3)","Entrer un code","Charge un évènement ou un ticket partagé");
  if(sous==="code"){var ch=evcodes.map(find).filter(ouvert);
   h+='<div style="margin:0 0 8px"><input class="in" id="cdi" placeholder="Code d’évènement ou de ticket" autocapitalize="characters"><button class="ok" id="cg">Charger</button>'+(ch.length?'<div style="margin-top:10px">'+ch.map(carte).join("")+'</div>':'')+'</div>'}
  $("vue").innerHTML=h;tic()}
-function majGain(){var e=$("gp"),i=$("mi");if(!e||!i)return;var t=1;Object.keys(coupon).forEach(function(k){t*=coupon[k].q});var m=+i.value||0;e.lastChild.textContent=m>0?Math.round(m*t)+" F":"–"}
+function majGain(){var e=$("gp"),i=$("mi");if(!e||!i)return;var t=1;Object.keys(coupon).forEach(function(k){t*=1+coupon[k].q/100});var m=+i.value||0;e.lastChild.textContent=m>0?Math.round(m*t)+" F":"–"}
 $("vue").addEventListener("click",function(ev){
  var o=ev.target.closest("[data-o]"),b=ev.target.closest("button"),id=b?b.id:"";
  if(o){var k=o.dataset.o;if(k==="alim"){location.href="recharge.html";return}sous=sous===k?"":k;rendre();return}
