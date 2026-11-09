@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pronos Arena – Tous les matchs</title>
+<title>Pronos Arena – Détails du match</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -14,27 +14,39 @@
 <script src="app.js"></script>
 <script>
 nav("index");
-var q="";
-// Recherche sans tenir compte des accents ni des majuscules.
-function norm(t){return String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
-function liste(){
- var tous=avant(),mots=norm(q).split(/\s+/).filter(Boolean);
- var l=tous.filter(function(m){var c=norm(m.a+" "+m.b+" "+m.l);return mots.every(function(w){return c.indexOf(w)>-1})});
- if(!tous.length)return '<p class="vide" style="padding:24px 0">Aucun évènement pour le moment.</p>';
- if(!l.length)return '<p class="vide" style="padding:24px 0">Aucun match ne correspond à « '+esc(q.trim())+' ».</p>';
- var h='<p class="leg" style="margin:0 0 4px">'+l.length+(l.length>1?' matchs':' match')+'</p>',jour="";
- l.forEach(function(m){
-  var j=new Date(m.start).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
-  if(j!==jour){jour=j;h+='<h3 style="margin:16px 0 8px;font-size:15px;color:var(--mute);text-transform:capitalize">'+esc(j)+'</h3>'}
-  h+='<div style="margin-bottom:10px">'+carte(m)+'</div>'});
- return h}
+var MID=+((location.search.match(/id=(\d+)/)||[])[1])||0,filtre="tous",ferme={};
+var RET='<a href="matchs.html" class="tout" style="text-decoration:none;color:inherit;display:inline-block;margin-top:12px">← Matchs</a>';
+function puces(){
+ var L=[["tous","Tous les marchés"],["pop","Populaires"],["tot","Total"]];
+ return '<div class="chips">'+L.map(function(x){return '<button class="chip" data-f="'+x[0]+'" aria-pressed="'+(filtre===x[0])+'">'+x[1]+'</button>'}).join("")+'</div>'}
+function marche(m,k){
+ var h='<div class="mk"><button class="mkh" data-mk="'+k.id+'"><b>'+esc(k.t)+'</b><span>('+k.o.length+') '+(ferme[k.id]?"⌄":"⌃")+'</span></button>';
+ if(!ferme[k.id]){
+  h+='<div class="mkb" style="grid-template-columns:repeat('+k.cols+',1fr)">'+k.o.map(function(x){
+   var on=coupon[m.id]&&coupon[m.id].k===x.k,lb=k.id==="r"?x.lb:k.t+" : "+x.lb;
+   return '<button class="cote" data-m="'+m.id+'" data-k="'+x.k+'" data-lb="'+esc(lb)+'" data-q="'+x.q+'" aria-pressed="'+!!on+'"><span>'+esc(x.lb)+'</span><b>'+fc(x.q)+'</b></button>'}).join("")+'</div>'}
+ return h+'</div>'}
 function rendre(){
- $("vue").innerHTML='<a href="index.html" class="tout" style="text-decoration:none;color:inherit;display:inline-block;margin-top:12px">← Accueil</a>'+
-  '<div class="sec"><h2>Tous les <span class="b">matchs</span></h2></div>'+
-  '<input class="in" id="rq" type="search" placeholder="Rechercher une équipe ou un championnat" autocomplete="off" value="'+esc(q)+'">'+
-  '<div id="lst">'+liste()+'</div>';
+ var m=find(MID);
+ if(!m){
+  $("vue").innerHTML=RET+'<p class="vide">'+(_snap?"Ce match n’est plus disponible.":"Chargement…")+'</p>';return}
+ var d=new Date(m.start).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}).replace(",","");
+ var MK=marches(m).filter(function(k){return filtre==="tous"||(filtre==="pop"&&k.pop)||(filtre==="tot"&&k.tot)});
+ $("vue").innerHTML=
+  '<div class="ban"><div style="display:flex;align-items:center;gap:10px"><a href="matchs.html" class="tout" style="text-decoration:none;color:inherit" aria-label="Retour">←</a>'+
+  '<b style="flex:1;text-align:center;font-size:16px">Football · '+esc(m.l)+'</b>'+
+  '<a href="stats.html?id='+m.id+'" class="tout" style="text-decoration:none;color:inherit" aria-label="Statistiques">⚡ Stats</a></div>'+
+  '<div class="vs" style="margin:16px 0 4px"><div class="eq" style="flex-direction:column;text-align:center">'+lg(m.a,m.ca,m.la)+'<span>'+esc(m.a)+'</span></div>'+
+  '<div class="j" style="font-size:26px;font-weight:800">VS</div>'+
+  '<div class="eq" style="flex-direction:column;text-align:center">'+lg(m.b,m.cb,m.lb)+'<span>'+esc(m.b)+'</span></div></div>'+
+  '<div class="cd">'+(ouvert(m)?'Démarre dans <span data-cd="'+m.id+'"></span>':'Match en cours')+'<p>'+d+'</p></div></div>'+
+  puces()+
+  (MK.length?MK.map(function(k){return marche(m,k)}).join(""):'<p class="vide" style="padding:24px 0">Aucun marché dans cette catégorie.</p>');
  tic()}
-$("vue").oninput=function(ev){if(ev.target.id==="rq"){q=ev.target.value;$("lst").innerHTML=liste();tic()}};
+$("vue").onclick=function(ev){
+ var f=ev.target.closest("[data-f]"),k=ev.target.closest("[data-mk]");
+ if(f){filtre=f.dataset.f;rendre()}
+ if(k){ferme[k.dataset.mk]=!ferme[k.dataset.mk];rendre()}};
 rendre();
 </script>
 </body>
