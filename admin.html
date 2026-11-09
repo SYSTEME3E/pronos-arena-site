@@ -15,11 +15,11 @@
 <script src="app.js"></script>
 <script>
 nav("menu");
-function estAdmin(){return sess&&pseudoAdmin(sess.pseudo)}
+function estAdmin(){return !!(sess&&sess.is_admin)}
 var onglet=(location.search.match(/t=(\w+)/)||[])[1]||"accueil",ft="tous",fs="tous",rq="",sup="",fe="ouverts",cfm=null;
 function fm(n){return String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g," ")}
 function somme(l,f){return l.reduce(function(s,x){return s+f(x)},0)}
-function estAdm(c){return pseudoAdmin(c.pseudo)}
+function estAdm(c){return !!c.is_admin}
 function adminProno(){
  var p=pronostic,h='<div class="fiche"><b>Pronostic du jour</b>';
  var mine=p?parts.filter(function(x){return x.pid===p.id&&x.st!=="annule"}):[];
@@ -39,14 +39,12 @@ function adminProno(){
  return h+'</div>'}
 function gererProno(ev){
  var b=ev.target.closest("button"),id=b?b.id:"";
- if(id==="pub"){var x=find(+$("pm").value);if(!x){toast("Crée d’abord un évènement.");return true}var sa=$("pa").value,sb=$("pb").value,cq=+$("pc").value;
-  if(sa===""||sb===""||!(cq>1)){toast("Choisis le match, le score et une cote supérieure à 1.");return true}
-  pronostic={id:"P"+Date.now(),mid:x.id,a:x.a,b:x.b,score:(+sa)+"-"+(+sb),cote:cq,st:"ouvert"};ecrire("pronostic",pronostic);rendre();toast("Pronostic publié en haut de l’accueil.");return true}
+ if(id==="pub"){var x=find(+$("pm").value);if(!x){toast("Aucun évènement disponible.");return true}var sa=$("pa").value,sc=$("pb").value,cq=+$("pc").value;
+  if(sa===""||sc===""||!(cq>1)){toast("Choisis le match, le score et une cote supérieure à 1.");return true}
+  agir(function(){return rpc("admin_publier_pronostic",{p_evenement:x.id,p_score1:+sa,p_score2:+sc,p_cote:cq})},"Pronostic publié en haut de l’accueil.");return true}
  if(id==="fin"){var fa=$("fa").value,fb=$("fb").value;if(fa===""||fb===""){toast("Saisis le score final.");return true}
-  var fin=(+fa)+"-"+(+fb);pronostic.final=fin;pronostic.st="clos";
-  parts.forEach(function(r){if(r.pid===pronostic.id&&r.st==="cours"){if(fin!==pronostic.score){r.st="gagne";crediter(r.uid,Math.round(r.mise*r.cote))}else r.st="perdu"}});
-  ecrire("parts",parts);ecrire("pronostic",pronostic);rendre();toast("Match terminé, résultats appliqués.");return true}
- if(id==="rem"){parts.forEach(function(r){if(r.pid===pronostic.id&&r.st==="perdu"){r.st="rembourse";crediter(r.uid,r.mise)}});ecrire("parts",parts);rendre();toast("Toutes les mises perdues sont remboursées.");return true}
+  agir(function(){return rpc("admin_cloturer_pronostic",{p_id:pronostic.id,p_final1:+fa,p_final2:+fb})},"Match terminé, résultats appliqués.");return true}
+ if(id==="rem"){agir(function(){return rpc("admin_rembourser_pronostic",{p_id:pronostic.id})},"Toutes les mises perdues sont remboursées.");return true}
  return false}
 
 
@@ -89,18 +87,16 @@ function gererEvent(t){
  if(act==="non"){cfm=null;rendre();return true}
  if(act==="oui"&&cfm&&cfm.id===m.id){
   if(m.st!=="ouvert"){cfm=null;rendre();return true}
-  if(cfm.t==="res"){m.res=cfm.a+"-"+cfm.b;m.st="clos";ecrire("events",EV);reglerEvent(m);toast("Résultat enregistré, tickets réglés.")}
-  else if(cfm.t==="ann"){m.st="annule";ecrire("events",EV);reglerEvent(m);toast("Évènement annulé, sélections remboursées.")}
-  else if(!nbParis(m.id)){EV=EV.filter(function(e){return e.id!==m.id});ecrire("events",EV);toast("Évènement supprimé.")}
-  cfm=null;rendre()}
+  var ct=cfm,mm=m;cfm=null;
+  agir(function(){return ct.t==="res"?rpc("admin_resultat_evenement",{p_id:mm.id,p_score1:ct.a,p_score2:ct.b}):ct.t==="ann"?rpc("admin_annuler_evenement",{p_id:mm.id}):rpc("admin_supprimer_evenement",{p_id:mm.id})},
+   ct.t==="res"?"Résultat enregistré, tickets réglés.":ct.t==="ann"?"Évènement annulé, sélections remboursées.":"Évènement supprimé.")}
  return true}
 
 function totaux(){
  var dep=demandes.filter(function(x){return x.type!=="retrait"}),ret=demandes.filter(function(x){return x.type==="retrait"});
- var pa=hist.concat(parts),g=pa.filter(function(x){return x.st==="gagne"}),pe=pa.filter(function(x){return x.st==="perdu"});
- function ok(l){return l.filter(function(x){return x.st==="valide"})}function at(l){return l.filter(function(x){return x.st==="attente"})}
- var m=function(x){return x.montant};
- return {dep:somme(ok(dep),m),ret:somme(ok(ret),m),gag:somme(g,function(x){return Math.round(x.mise*x.cote)}),ng:g.length,per:somme(pe,function(x){return x.mise}),np:pe.length,ad:at(dep),ar:at(ret)}}
+ function at(l){return l.filter(function(x){return x.st==="attente"})}
+ var D=DASH||{};
+ return {dep:D.total_recharge||0,ret:D.total_retire||0,gag:D.gagne||0,ng:D.nb_gagnes||0,per:D.perdu||0,np:D.nb_perdus||0,ad:at(dep),ar:at(ret)}}
 function stat(l,v,c,s){return '<div class="st"><small>'+l+'</small><b'+(c==="v"?' style="color:var(--vert)"':c?' class="'+c+'"':'')+'>'+v+'</b>'+(s?'<small style="display:block">'+s+'</small>':'')+'</div>'}
 function accueil(){
  var T=totaux(),m=function(x){return x.montant},att=T.ad.concat(T.ar).sort(function(a,b){return demandes.indexOf(a)-demandes.indexOf(b)});
@@ -154,14 +150,12 @@ function gererCompte(a){
   var m=Math.floor(+($("am"+id).value||0));
   if(!(m>0)){toast("Entre un montant supérieur à 0.");return}
   if(act==="sub"&&m>(c.solde||0)){toast("Solde insuffisant : "+fm(c.solde)+" F.");return}
-  var v=act==="add"?m:-m;crediter(id,v);c.dernier={m:v,date:new Date().toLocaleDateString("fr-FR")};ecrire("comptes",comptes);
-  rendre();toast(act==="add"?fm(m)+" F ajoutés au compte.":fm(m)+" F retirés du compte.");return}
- if(act==="blk"){c.bloque=!c.bloque;ecrire("comptes",comptes);rendre();toast(c.bloque?"Compte bloqué.":"Compte débloqué.");return}
+  agir(function(){return rpc("admin_ajuster_solde",{p_uid:id,p_montant:act==="add"?m:-m})},act==="add"?fm(m)+" F ajoutés au compte.":fm(m)+" F retirés du compte.");return}
+ if(act==="blk"){agir(function(){return rpc("admin_bloquer",{p_uid:id,p_bloque:!c.bloque})},c.bloque?"Compte débloqué.":"Compte bloqué.");return}
  if(act==="del"){sup=id;rendre();return}
  if(act==="delno"){sup="";rendre();return}
- if(act==="delok"){
-  demandes.forEach(function(x){if(x.uid===id&&x.st==="attente")x.st="refuse"});ecrire("demandes",demandes);
-  comptes=comptes.filter(function(x){return x.id!==id});ecrire("comptes",comptes);sup="";rendre();toast("Compte supprimé.")}}
+ if(act==="delok"){sup="";agir(function(){return rpc("admin_supprimer_compte",{p_uid:id})},"Compte supprimé.")}}
+function enregCfg(c,msg){agir(function(){return rpc("admin_maj_reglages",{p_p1:c.p1,p_p2:c.p2,p_p3:c.p3,p_frais:c.pr,p_retrait_min:c.minRet,p_heure_debut:c.hd,p_heure_fin:c.hf,p_lien:c.lien,p_depot_min:c.minDep})},msg)}
 $("vue").onclick=function(ev){
  if(!estAdmin())return;
  var t=ev.target,o=t.closest("[data-ot]");
@@ -173,18 +167,15 @@ $("vue").onclick=function(ev){
  if(gererProno(ev))return;
  var b=t.closest("[data-v]");
  if(b){var x=demandes.filter(function(q){return q.id===b.dataset.d})[0];
-  if(x&&x.st==="attente"){
-   if(b.dataset.v==="valide"&&!comptes.some(function(c){return c.id===x.uid})){toast("Compte introuvable.");return}
-   if(x.type==="retrait"&&b.dataset.v==="valide"){var cs=(comptes.filter(function(c){return c.id===x.uid})[0]||sess||{}).solde||0;if(cs<x.montant){toast("Solde insuffisant pour ce retrait.");return}}
-   x.st=b.dataset.v;var bt=0;if(x.st==="valide"){crediter(x.uid,x.type==="retrait"?-x.montant:x.montant);if(x.type!=="retrait")bt=distribuerBonus(x)}
-   ecrire("demandes",demandes);rendre();toast(x.st!=="valide"?"Demande refusée.":x.type==="retrait"?"Retrait validé, solde débité.":bt?"Recharge validée. Bonus de parrainage distribués : "+bt+" F.":"Recharge validée, solde crédité.")}return}
- if(t.closest("#sp")){CONFIG.p1=+$("p1").value||0;CONFIG.p2=+$("p2").value||0;CONFIG.p3=+$("p3").value||0;ecrire("config",CONFIG);toast("Pourcentages enregistrés.")}
+  if(x&&x.st==="attente"){var dec=b.dataset.v;agir(function(){return rpc("admin_traiter_demande",{p_id:x.did,p_decision:dec})},function(r){return r})}return}
+ if(t.closest("#sp")){var c1=Object.assign({},CONFIG);c1.p1=+$("p1").value||0;c1.p2=+$("p2").value||0;c1.p3=+$("p3").value||0;enregCfg(c1,"Pourcentages enregistrés.")}
  if(t.closest("#sr")){
   var hd=Math.floor(+$("hd").value),hf=Math.floor(+$("hf").value);
   if(!(hd>=0&&hf<=24&&hd<hf)){toast("Heures invalides : l’ouverture doit être avant la fermeture (de 0 à 24).");return}
-  CONFIG.pr=Math.min(100,Math.max(0,+$("pr").value||0));CONFIG.minRet=Math.max(0,Math.floor(+$("mr").value||0));CONFIG.hd=hd;CONFIG.hf=hf;
-  ecrire("config",CONFIG);toast("Réglages du retrait enregistrés.")}
- if(t.closest("#sl")){var lk=$("lk").value.trim();if(lk&&!/^https?:\/\//i.test(lk)){toast("Le lien doit commencer par https://");return}CONFIG.lien=lk;CONFIG.minDep=Math.max(0,Math.floor(+$("md").value||0));ecrire("config",CONFIG);toast("Réglages de la recharge enregistrés.")}};
+  var c2=Object.assign({},CONFIG);c2.pr=Math.min(100,Math.max(0,+$("pr").value||0));c2.minRet=Math.max(0,Math.floor(+$("mr").value||0));c2.hd=hd;c2.hf=hf;
+  enregCfg(c2,"Réglages du retrait enregistrés.")}
+ if(t.closest("#sl")){var lk=$("lk").value.trim();if(lk&&!/^https?:\/\//i.test(lk)){toast("Le lien doit commencer par https://");return}
+  var c3=Object.assign({},CONFIG);c3.lien=lk;c3.minDep=Math.max(0,Math.floor(+$("md").value||0));enregCfg(c3,"Réglages de la recharge enregistrés.")}};
 $("vue").oninput=function(ev){if(ev.target.id==="cq"){rq=ev.target.value;$("lc").innerHTML=listeComptes()}};
 rendre();
 </script>
