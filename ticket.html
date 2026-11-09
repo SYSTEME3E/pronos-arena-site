@@ -42,14 +42,11 @@ $("vue").addEventListener("click",function(ev){
   var perdus=Object.keys(coupon).filter(function(i){return !ouvert(find(i))});
   if(perdus.length){perdus.forEach(function(i){delete coupon[i]});ecrire("coupon",coupon);badge();toast("Un match a commencé : il a été retiré de ton ticket.");rendre();return}
   if(mise>solde){toast("Solde insuffisant. Fais une demande de recharge.");return}
-  var cote=1,sel=Object.keys(coupon).map(function(i){var m=find(i),c=coupon[i];cote*=c.q;return {eid:m.id,k:c.k,a:m.a,b:m.b,lb:c.lb,q:c.q,r:null}});
-  hist.unshift({id:"T"+Math.floor(100000+Math.random()*900000),uid:sess.id,ts:Date.now(),date:new Date().toLocaleDateString("fr-FR"),sel:sel,mise:mise,cote:cote,st:"cours"});
-  solde-=mise;sess.solde=solde;sauver();ecrire("hist",hist);coupon={};ecrire("coupon",coupon);badge();toast("Pari enregistré. Retrouve-le dans Historique.");rendre()}
+  var sel=Object.keys(coupon).map(function(i){return {evenement_id:+i,choix:coupon[i].k}});
+  agir(function(){return rpc("placer_pari",{p_selections:sel,p_mise:mise})},"Pari enregistré. Retrouve-le dans Historique.").then(function(r){if(r.ok){coupon={};ecrire("coupon",coupon);badge();rendre()}})}
  if(id==="vd"){coupon={};ecrire("coupon",coupon);badge();rendre()}
- if(id==="cg"){var c=($("cdi").value||"").trim().toUpperCase(),m=EV.filter(function(x){return x.code===c&&x.st==="ouvert"})[0];
-  if(!m){toast("Code introuvable.");return}
-  if(!ouvert(m)){toast("Cet évènement a déjà commencé.");return}
-  if(evcodes.indexOf(m.id)<0){evcodes.push(m.id);ecrire("evcodes",evcodes)}toast("Évènement ajouté.");rendre()}
+ if(id==="cg"){var c=($("cdi").value||"").trim().toUpperCase();if(!c){toast("Entre un code.");return}
+  agir(function(){return rpc("charger_evenement",{p_code:c})},"Évènement ajouté.");return}
  if(id==="ajc"){coupon={};combine().forEach(function(x){coupon[x.m.id]={k:x.k,lb:x.lb,q:x.q}});ecrire("coupon",coupon);badge();sous="";rendre()}
 });
 $("vue").oninput=function(ev){if(ev.target.id==="rq")$("res").innerHTML=resultats(ev.target.value);if(ev.target.id==="mi")majGain()};
