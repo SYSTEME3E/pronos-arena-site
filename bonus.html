@@ -15,7 +15,7 @@
 <script src="app.js"></script>
 <script>
 nav("menu");
-var me=sess||{},mes=bons.filter(function(b){return b.uid===me.id}),tot=mes.reduce(function(s,b){return s+b.bonus},0);
+function rendre(){var me=sess||{},mes=bons.filter(function(b){return b.uid===me.id}),tot=mes.reduce(function(s,b){return s+b.bonus},0);
 $("vue").innerHTML=RETOUR+'<div class="sec"><h2>Mes <span class="r">bonus</span></h2></div>'+
  '<div class="fiche"><small>Total des bonus</small><div class="j" style="font-size:28px;font-weight:800">'+tot+' F</div></div>'+
  '<div class="fiche"><b>Bonus de parrainage</b><p class="leg" style="margin:6px 0">Quand un de tes filleuls fait une recharge validée par l’administrateur, tu reçois un pourcentage de son montant. Le bonus est ajouté automatiquement à ton solde.</p>'+
@@ -24,7 +24,8 @@ $("vue").innerHTML=RETOUR+'<div class="sec"><h2>Mes <span class="r">bonus</span>
  '<div class="sec"><h2>Historique</h2></div>'+
  (mes.length?mes.map(function(b){return '<article class="match"><div class="meta"><span>Niveau '+b.niv+' – '+esc(b.date)+'</span><b class="j">+'+b.bonus+' F</b></div>'+
   '<div class="ligne"><span>Filleul</span><b>'+esc(b.de)+'</b></div><div class="ligne"><span>Recharge</span><b>'+b.base+' F</b></div><div class="ligne"><span>Pourcentage</span><b>'+b.pc+' %</b></div></article>'}).join(""):
-  '<p class="vide">Aucun bonus pour le moment.<br>Partage ton code de parrainage : <b class="j">'+esc(me.code||"–")+'</b></p>');
+  '<p class="vide">Aucun bonus pour le moment.<br>Partage ton code de parrainage : <b class="j">'+esc(me.code||"–")+'</b></p>')}
+rendre();
 </script>
 </body>
 </html>
