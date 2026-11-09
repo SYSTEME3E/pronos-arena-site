@@ -208,3 +208,30 @@ function participer(){
  if(m>solde){toast("Solde insuffisant. Fais une demande de recharge.");return}
  parts.unshift({id:"R"+Math.floor(100000+Math.random()*900000),pid:p.id,uid:sess.id,pseudo:sess.pseudo,a:p.a,b:p.b,score:p.score,cote:p.cote,mise:m,date:new Date().toLocaleDateString("fr-FR"),st:"cours"});
  ecrire("parts",parts);solde-=m;sess.solde=solde;sauver();toast("Participation enregistrée.");if(window.rendre)rendre()}
+
+
+// ===== Évènements : chargés depuis Supabase (table « evenements », lecture publique des matchs publiés) =====
+var SB_URL="https://vxefmhkoojbjxtczjujo.supabase.co",
+ SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4ZWZtaGtvb2pianh0Y3pqdWpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMTYzMjMsImV4cCI6MjEwODU5MjMyM30.1W76QHjIt0lkt8PhUXYzwnni4B0yQJ9Tyvcqc3CAOe8";
+function evBase(r){
+ var q={"1":+r.q1,X:+r.qx,"2":+r.q2};
+ if(r.q_bo&&r.q_bn){q.bo=+r.q_bo;q.bn=+r.q_bn}
+ if(r.q_po&&r.q_pu){q.po=+r.q_po;q.pu=+r.q_pu}
+ return {id:r.id,code:r.code,l:r.competition||"",a:r.equipe1,b:r.equipe2,start:Date.parse(r.debut),q:q,pub:!!r.publie,st:r.statut,
+  res:(r.score1!=null&&r.score2!=null)?r.score1+"-"+r.score2:null}}
+function chargerEvents(){
+ if(!window.fetch||!sess)return;
+ var depuis=new Date(Date.now()-3*864e5).toISOString();
+ fetch(SB_URL+"/rest/v1/evenements?select=id,code,competition,equipe1,equipe2,debut,q1,qx,q2,q_bo,q_bn,q_po,q_pu,publie,statut,score1,score2&debut=gte."+encodeURIComponent(depuis)+"&order=debut.asc&limit=300",
+  {headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}})
+ .then(function(r){if(!r.ok)throw 0;return r.json()})
+ .then(function(rows){
+  var nv=rows.map(evBase);
+  if(JSON.stringify(nv)===JSON.stringify(EV))return;
+  EV=nv;ecrire("events",EV);
+  // Matchs terminés ou annulés côté base : les tickets en cours sont réglés (sans effet s’ils le sont déjà).
+  nv.forEach(function(m){if(m.st==="annule"||(m.st==="clos"&&m.res))reglerEvent(m)});
+  Object.keys(coupon).forEach(function(i){if(!ouvert(find(i))||coupon[i].k===undefined)delete coupon[i]});ecrire("coupon",coupon);
+  badge();if(window.rendre)rendre()})
+ .catch(function(){})}
+chargerEvents();
