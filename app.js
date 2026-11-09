@@ -17,7 +17,7 @@ gardeAdmin();
 
 var $=function(i){return document.getElementById(i)};
 function pad(n){return String(n).padStart(2,"0")}
-// Les cotes s’affichent en % : 2.5 devient « 2,5 % » (le calcul des gains ne change pas).
+// Les cotes s’affichent en % : 1.5 devient « 1,5 % » (gain = mise + mise x cote / 100).
 function fc(q){return String(+(+q).toFixed(2)).replace(".",",")+" %"}
 // Logos : uniquement des images hébergées par api-sports (même règle que côté serveur).
 function logoSur(u){return typeof u==="string"&&/^https:\/\/media[a-z0-9.-]*\.api-sports\.io\/[A-Za-z0-9\/_.-]+$/.test(u)?u:""}
@@ -233,7 +233,9 @@ function evBase(r){
  return {id:r.id,code:r.code,l:r.competition||"",a:r.equipe1,b:r.equipe2,start:Date.parse(r.debut),q:q,pub:!!r.publie,st:r.statut,
   res:(r.score1!=null&&r.score2!=null)?r.score1+"-"+r.score2:null,la:logoSur(r.logo1),lb:logoSur(r.logo2)}}
 function dfr(t){return new Date(t).toLocaleDateString("fr-FR")}
-function gainT(t){return t.st==="gagne"&&t.gain>0?t.gain:Math.round(t.mise*t.cote)}
+// La cote est un pourcentage : mise 1000 F x cote 1,5 → 1000 + 1,5 % de 1000 = 1015 F.
+function gainC(mise,cote){return Math.round(mise*(1+cote/100))}
+function gainT(t){return t.st==="gagne"&&t.gain>0?t.gain:gainC(t.mise,t.cote)}
 function arbre(){var n=[[],[],[]];(ARBRE||[]).forEach(function(x){if(n[x.niveau-1])n[x.niveau-1].push({id:x.user_id,pseudo:x.pseudo,rapporte:+x.rapporte||0})});return n}
 function retraitOuvert(){if(RO!==null)return !!RO;var d=new Date(),m=d.getHours()*60+d.getMinutes();return m>=CONFIG.hd*60&&m<CONFIG.hf*60}
 
@@ -270,7 +272,7 @@ function chargerCoeur(){
     r:s.resultat==="gagne"?true:s.resultat==="perdu"?false:s.resultat==="annule"?"annule":null}});
    return {id:"T"+t.id,tid:t.id,uid:t.user_id,ts:Date.parse(t.created_at),date:dfr(t.created_at),sel:sel,mise:+t.mise,cote:+t.cote,st:t.statut,gain:+t.gain||0,tsr:t.regle_le?Date.parse(t.regle_le):0}});
   if(R[5])parts=R[5].map(function(r){var q=r.pronostics||{};
-   return {id:"R"+r.id,rid:r.id,pid:r.pronostic_id,uid:r.user_id,a:q.equipe1,b:q.equipe2,score:q.score1+"-"+q.score2,cote:+r.cote,mise:+r.mise,date:dfr(r.created_at),st:r.statut,gain:r.statut==="gagne"?Math.round(r.mise*r.cote):0}});
+   return {id:"R"+r.id,rid:r.id,pid:r.pronostic_id,uid:r.user_id,a:q.equipe1,b:q.equipe2,score:q.score1+"-"+q.score2,cote:+r.cote,mise:+r.mise,date:dfr(r.created_at),st:r.statut,gain:r.statut==="gagne"?gainC(r.mise,r.cote):0}});
   if(R[6]){var pr=R[6][0];pronostic=pr?{id:pr.id,mid:pr.evenement_id,a:pr.equipe1,b:pr.equipe2,score:pr.score1+"-"+pr.score2,cote:+pr.cote,st:pr.statut,final:pr.final1!=null?pr.final1+"-"+pr.final2:null}:null}
   if(R[7])demandes=R[7].map(function(d){return {id:"D"+d.id,did:d.id,type:d.type,uid:d.user_id,pseudo:d.pseudo,montant:+d.montant,reseau:d.reseau,preuve:d.preuve||"",tel:d.tel,nom:d.nom,prenom:d.prenom,
    date:dfr(d.created_at),st:d.statut,pr:d.frais_pct!=null?+d.frais_pct:undefined,frais:d.frais!=null?+d.frais:undefined,net:d.net!=null?+d.net:undefined}});
