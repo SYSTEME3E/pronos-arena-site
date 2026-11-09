@@ -3,6 +3,12 @@ function ecrire(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 var coupon=lire("coupon",{}),favs=lire("favs",{}),hist=lire("hist",[]),sess=lire("sess",null),comptes=lire("comptes",[]),demandes=lire("demandes",[]),bons=lire("bons",[]),pronostic=lire("pronostic",null),parts=lire("parts",[]),EV=lire("events",[]),evcodes=lire("evcodes",[]),CONFIG=lire("config",{p1:10,p2:5,p3:2,pr:5,lien:"",minDep:0,minRet:0,hd:10,hf:18}),solde=0;
 if(CONFIG.pr===undefined)CONFIG.pr=5;if(CONFIG.lien===undefined)CONFIG.lien="";if(CONFIG.minDep===undefined)CONFIG.minDep=0;if(CONFIG.minRet===undefined)CONFIG.minRet=0;if(CONFIG.hd===undefined)CONFIG.hd=10;if(CONFIG.hf===undefined)CONFIG.hf=18;
 solde=(sess||{}).solde||0;
+// Un administrateur n’a accès qu’au panneau d’administration : toute autre page le renvoie vers admin.html.
+function gardeAdmin(){
+ if(!sess||!sess.is_admin)return;
+ if(/\/admin(\.html)?$/.test(location.pathname)||location.pathname.indexOf("connexion")>-1)return;
+ location.replace("admin.html?t=accueil")}
+gardeAdmin();
 
 var $=function(i){return document.getElementById(i)};
 function pad(n){return String(n).padStart(2,"0")}
@@ -69,9 +75,9 @@ function nav(p){
  ["menu","Menu",'<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>']];
  window.NAVP=p;var adm=!!(sess&&sess.is_admin);
  $("nb").className=adm?"adm":"";
- $("nb").innerHTML=(adm?'<button class="nv bg" id="bg" aria-label="Menu administration"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>':'')+N.map(function(n){var h=n[0]+".html",cur=n[0]===p?' aria-current="true"':'';
+ $("nb").innerHTML=(adm?'<button class="nv bg" id="bg" aria-label="Menu administration"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>':'')+(adm?"":N.map(function(n){var h=n[0]+".html",cur=n[0]===p?' aria-current="true"':'';
   if(n[0]==="ticket")return '<a class="nv cp" href="'+h+'" aria-label="Ticket"'+cur+'><span class="rond"><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/></svg><em id="cpn" style="display:none">0</em></span>Ticket</a>';
-  return '<a class="nv" href="'+h+'"'+cur+'><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">'+n[2]+'</svg>'+n[1]+'</a>'}).join("");
+  return '<a class="nv" href="'+h+'"'+cur+'><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">'+n[2]+'</svg>'+n[1]+'</a>'}).join(""));
  badge();if(adm)tiroir()}
 // Menu 3 barres de l’administrateur : les pages d’administration s’ouvrent depuis ce tiroir.
 function tiroir(){
@@ -79,9 +85,11 @@ function tiroir(){
  var na=demandes.filter(function(x){return x.st==="attente"}).length;
  var L=[["accueil","Tableau de bord"],["demandes","Dépôts et retraits"+(na?" ("+na+")":"")],["comptes","Comptes"],["events","Évènements et résultats"],["prono","Pronostic du jour"],["regl","Réglages"]];
  var d=document.createElement("div");d.id="tir";d.innerHTML='<div class="vo" id="tvo"></div><aside class="pan"><div class="th"><b>Administration</b><button class="ic" id="tfe" aria-label="Fermer">✕</button></div>'+
-  L.map(function(x){return '<a class="dir" href="admin.html?t='+x[0]+'" style="text-decoration:none;color:inherit"><span class="nom">'+x[1]+'</span><span>›</span></a>'}).join("")+'</aside>';
+  L.map(function(x){return '<a class="dir" href="admin.html?t='+x[0]+'" style="text-decoration:none;color:inherit"><span class="nom">'+x[1]+'</span><span>›</span></a>'}).join("")+
+  '<a class="dir" href="#" id="tdc" style="text-decoration:none;color:inherit"><span class="nom">Déconnexion</span><span>›</span></a></aside>';
  document.body.appendChild(d)}
 document.addEventListener("click",function(ev){
+ if(ev.target.closest("#tdc")){ev.preventDefault();quitter();return}
  if(ev.target.closest("#bg")){$("tir").classList.add("ouv");return}
  if(ev.target.closest("#tvo")||ev.target.closest("#tfe")){$("tir").classList.remove("ouv");return}
  var c=ev.target.closest(".cote"),f=ev.target.closest(".fav");
@@ -95,8 +103,8 @@ document.addEventListener("click",function(ev){
 
 function gains(){var d=Date.now()-6048e5;return mesTickets().filter(function(t){return t.st==="gagne"&&(t.tsr||0)>=d}).reduce(function(s,t){return s+gainT(t)},0)}
 function carteTicket(t){
- var etat=t.st==="cours"?'<span class="live">● En cours</span>':t.st==="gagne"?'<b class="j">Gagné</b>':t.st==="rembourse"?'<b class="b">Remboursé</b>':t.st==="annule"?'<b class="b">Annulé</b>':'<b class="r">Perdu</b>';
- var sr=function(s){return s.r===true?' <b class="j">✓</b>':s.r===false?' <b class="r">✗</b>':s.r==="annule"?' <small>(annulé)</small>':''};
+ var etat=t.st==="cours"?'<b class="j">● En cours</b>':t.st==="gagne"?'<b class="v">Gagné</b>':t.st==="rembourse"?'<b class="b">Remboursé</b>':t.st==="annule"?'<b class="b">Annulé</b>':'<b class="r">Perdu</b>';
+ var sr=function(s){return s.r===true?' <b class="v">✓</b>':s.r===false?' <b class="r">✗</b>':s.r==="annule"?' <small>(annulé)</small>':''};
  return '<article class="match"><div class="meta"><span>Ticket '+t.id+' – '+t.date+'</span>'+etat+'</div>'+
  t.sel.map(function(s){return '<div class="ligne"><span>'+esc(s.a)+' – '+esc(s.b)+' ('+esc(s.lb)+')'+(t.pp?'':sr(s))+'</span><b class="j">'+s.q.toFixed(2)+'</b></div>'}).join("")+
  '<div class="ligne"><span>Mise</span><b>'+t.mise+' F</b></div>'+
@@ -108,16 +116,16 @@ function peutAnnuler(t){
  return t.sel.every(function(x){return ouvert(find(x.eid))})}
 
 function sauver(){}
-var RETOUR='<a href="menu.html" data-p="menu" class="tout" style="text-decoration:none;color:inherit;display:inline-block;margin-top:12px">← Menu</a>';
+var RETOUR=(sess&&sess.is_admin)?'':'<a href="menu.html" data-p="menu" class="tout" style="text-decoration:none;color:inherit;display:inline-block;margin-top:12px">← Menu</a>';
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function banniereRetrait(){
  var o=retraitOuvert();
- return '<div class="fiche"><div class="ligne" style="border:0;padding:0"><b class="'+(o?"j":"r")+'">'+(o?"● Retraits ouverts":"● Retraits fermés")+'</b><span>de '+CONFIG.hd+'h à '+CONFIG.hf+'h</span></div>'+
+ return '<div class="fiche"><div class="ligne" style="border:0;padding:0"><b class="'+(o?"v":"r")+'">'+(o?"● Retraits ouverts":"● Retraits fermés")+'</b><span>de '+CONFIG.hd+'h à '+CONFIG.hf+'h</span></div>'+
   (o?'':'<small style="color:var(--mute)">Reviens à partir de '+CONFIG.hd+'h pour envoyer ta demande.</small>')+
   (CONFIG.minRet>0?'<div class="ligne" style="border:0;padding:6px 0 0"><span>Retrait minimum</span><b>'+CONFIG.minRet+' F</b></div>':'')+'</div>'}
 function carteDemande(d,adm){
- var et=d.st==="attente"?'<b class="j">● En attente</b>':d.st==="valide"?'<b class="j">Validée</b>':'<b class="r">Refusée</b>';
+ var et=d.st==="attente"?'<b class="j">● En attente</b>':d.st==="valide"?'<b class="v">Validée</b>':'<b class="r">Refusée</b>';
  return '<article class="match"><div class="meta"><span>'+(d.type==="retrait"?"Retrait":"Recharge")+' – '+esc(d.date)+'</span>'+et+'</div>'+
  '<div class="ligne"><span>Montant</span><b class="j">'+esc(d.montant)+' F</b></div>'+
  (d.reseau?'<div class="ligne"><span>Réseau</span><b>'+esc(d.reseau)+'</b></div>':'')+
@@ -237,6 +245,7 @@ function chargerCoeur(){
   if(p&&p.bloque){quitter("Ce compte est bloqué. Contacte l’administrateur.");return}
   if(p){sess={id:p.id,pseudo:p.pseudo,email:p.email||"",tel:p.tel||"",prenom:p.prenom||"",nom:p.nom||"",pays:p.pays||"",ville:p.ville||"",
    code:p.code_parrainage,parrain:p.parrain_code||"",solde:+p.solde||0,bloque:false,is_admin:!!p.is_admin,date:dfr(p.created_at)};solde=sess.solde}
+  if(sess&&sess.is_admin){RETOUR="";ecrire("sess",sess);gardeAdmin()}
   var g=R[1]&&R[1][0];
   if(g)CONFIG={p1:+g.p1,p2:+g.p2,p3:+g.p3,pr:+g.retrait_frais_pct,lien:g.lien_paiement||"",minDep:+g.depot_min,minRet:+g.retrait_min,hd:+g.retrait_heure_debut,hf:+g.retrait_heure_fin};
   if(R[2]){EV=R[2].map(evBase);
