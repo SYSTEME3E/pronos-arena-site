@@ -32,7 +32,7 @@ function adminProno(){
   if(p&&p.st==="clos"){
    var g=mine.filter(function(x){return x.st==="gagne"}).length,pe=mine.filter(function(x){return x.st==="perdu"}),re=mine.filter(function(x){return x.st==="rembourse"}).length;
    h+='<div class="ligne"><span>'+esc(p.a)+' – '+esc(p.b)+' (pronostic '+esc(p.score.replace("-"," : "))+')</span><b>Final '+esc(p.final.replace("-"," : "))+'</b></div>'+
-    '<div class="ligne"><span>Gagnants</span><b class="j">'+g+'</b></div><div class="ligne"><span>Perdants</span><b class="r">'+pe.length+'</b></div>'+(re?'<div class="ligne"><span>Remboursés</span><b class="b">'+re+'</b></div>':'');
+    '<div class="ligne"><span>Gagnants</span><b class="v">'+g+'</b></div><div class="ligne"><span>Perdants</span><b class="r">'+pe.length+'</b></div>'+(re?'<div class="ligne"><span>Remboursés</span><b class="b">'+re+'</b></div>':'');
    if(pe.length)h+='<button class="ok" id="rem" style="margin:10px 0">Rembourser tout ('+pe.reduce(function(s,x){return s+x.mise},0)+' F)</button>'}
   h+='<small style="display:block;margin:10px 0 6px">Nouveau pronostic : choisis un match, le score et la cote.</small><select class="in" id="pm">'+EV.filter(function(x){return x.st!=="annule"}).map(function(x){return '<option value="'+x.id+'">'+esc(x.a)+' – '+esc(x.b)+'</option>'}).join("")+'</select>'+
    '<div style="display:flex;gap:8px"><input class="in" id="pa" type="number" min="0" placeholder="Buts équipe 1"><input class="in" id="pb" type="number" min="0" placeholder="Buts équipe 2"></div><input class="in" id="pc" type="number" step="0.01" min="1.01" value="1.50" placeholder="Cote de gain"><button class="ok" id="pub">Publier en haut de l’accueil</button>'}
@@ -54,7 +54,7 @@ function fdate(t){return new Date(t).toLocaleString("fr-FR",{dateStyle:"short",t
 function inp(id,ph,extra){return '<input class="in" id="'+id+'" '+(extra||"")+' placeholder="'+ph+'" style="margin:0;min-width:0">'}
 function carteEvent(m){
  var n=nbParis(m.id),dem=m.start<=Date.now(),q=m.q,fin=m.st!=="ouvert";
- var et=m.st==="annule"?'<b class="b">Annulé</b>':m.st==="clos"?'<b class="j">Terminé '+esc(m.res.replace("-"," : "))+'</b>':dem?'<b class="r">● Commencé</b>':'<b class="j">Ouvert</b>';
+ var et=m.st==="annule"?'<b class="b">Annulé</b>':m.st==="clos"?'<b class="v">Terminé '+esc(m.res.replace("-"," : "))+'</b>':dem?'<b class="j">● Commencé</b>':'<b class="v">Ouvert</b>';
  var h='<article class="match"><div class="meta"><span>'+esc(m.l||"Évènement")+'</span>'+et+'</div>'+
   '<div style="font-weight:800;font-size:16px;margin:2px 0 4px">'+esc(m.a)+' – '+esc(m.b)+'</div>'+
   '<div class="ligne"><span>Coup d’envoi</span><b>'+fdate(m.start)+'</b></div>'+
@@ -102,7 +102,7 @@ function accueil(){
  var T=totaux(),m=function(x){return x.montant},att=T.ad.concat(T.ar).sort(function(a,b){return demandes.indexOf(a)-demandes.indexOf(b)});
  return '<div class="stats" style="grid-template-columns:repeat(2,1fr)">'+
   stat("Total rechargé",fm(T.dep)+" F","v")+stat("Total retiré",fm(T.ret)+" F","b")+
-  stat("Gagné par les joueurs",fm(T.gag)+" F","j",T.ng+" pari"+(T.ng>1?"s":""))+stat("Perdu par les joueurs",fm(T.per)+" F","r",T.np+" pari"+(T.np>1?"s":""))+
+  stat("Gagné par les joueurs",fm(T.gag)+" F","v",T.ng+" pari"+(T.ng>1?"s":""))+stat("Perdu par les joueurs",fm(T.per)+" F","r",T.np+" pari"+(T.np>1?"s":""))+
   stat("Dépôts en attente",T.ad.length,"",fm(somme(T.ad,m))+" F")+stat("Retraits en attente",T.ar.length,"",fm(somme(T.ar,m))+" F")+'</div>'+
   '<div class="sec"><h2>En attente ('+att.length+')</h2></div>'+(att.length?att.map(function(x){return carteDemande(x,1)}).join(""):'<p class="vide">Aucune demande en attente.</p>')}
 function chipsF(l,cur,att){return '<div class="chips">'+l.map(function(x){return '<button class="chip" '+att+'="'+x[0]+'" aria-pressed="'+(cur===x[0])+'">'+x[1]+'</button>'}).join("")+'</div>'}
@@ -112,7 +112,7 @@ function demandesTab(){
   '<p class="leg" style="margin-bottom:10px">'+l.length+' demande'+(l.length>1?"s":"")+'</p>'+(l.length?l.map(function(x){return carteDemande(x,1)}).join(""):'<p class="vide">Aucune demande.</p>')}
 function carteCompte(c){
  var id=esc(c.id),adm=estAdm(c),d=c.dernier;
- return '<article class="match"><div class="meta"><span>'+esc(c.pseudo)+' · id. '+id+'</span>'+(c.bloque?'<b class="r">Bloqué</b>':'<b class="j">Actif</b>')+'</div>'+
+ return '<article class="match"><div class="meta"><span>'+esc(c.pseudo)+' · id. '+id+'</span>'+(c.bloque?'<b class="r">Bloqué</b>':'<b class="v">Actif</b>')+'</div>'+
   '<div class="ligne"><span>Solde</span><b class="j">'+fm(c.solde)+' F</b></div>'+
   (c.tel?'<div class="ligne"><span>Téléphone</span><b>'+esc(c.tel)+'</b></div>':'')+
   (d?'<div class="ligne"><span>Dernier ajustement ('+esc(d.date)+')</span><b class="'+(d.m>0?"j":"r")+'">'+(d.m>0?"+":"−")+fm(Math.abs(d.m))+' F</b></div>':'')+
