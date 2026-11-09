@@ -1,3 +1,6 @@
+// Comptes administrateurs (version locale rapide)
+var ADMINS=["admin","eric1"];
+function pseudoAdmin(p){return ADMINS.indexOf(String(p||"").toLowerCase())>-1}
 function lire(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function ecrire(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 var coupon=lire("coupon",{}),favs=lire("favs",{}),hist=lire("hist",[]),sess=lire("sess",null),comptes=lire("comptes",[]),demandes=lire("demandes",[]),bons=lire("bons",[]),pronostic=lire("pronostic",null),parts=lire("parts",[]),EV=lire("events",[]),evcodes=lire("evcodes",[]),CONFIG=lire("config",{p1:10,p2:5,p3:2,pr:5,lien:"",minDep:0,minRet:0,hd:10,hf:18}),solde=0;
@@ -83,7 +86,7 @@ function nav(p){
  ["favoris","Favoris",'<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'],["ticket","Ticket",""],
  ["historique","Historique",'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" style="stroke:var(--bg2)" stroke-width="2" fill="none"/>'],
  ["menu","Menu",'<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>']];
- var adm=sess&&sess.pseudo.toLowerCase()==="admin";
+ var adm=sess&&pseudoAdmin(sess.pseudo);
  $("nb").className=adm?"adm":"";
  $("nb").innerHTML=(adm?'<button class="nv bg" id="bg" aria-label="Menu administration"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>':'')+N.map(function(n){var h=n[0]+".html",cur=n[0]===p?' aria-current="true"':'';
   if(n[0]==="ticket")return '<a class="nv cp" href="'+h+'" aria-label="Ticket"'+cur+'><span class="rond"><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/></svg><em id="cpn" style="display:none">0</em></span>Ticket</a>';
